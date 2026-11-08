@@ -29,11 +29,20 @@ use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
 use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
 use LaravelBarion\LaravelBarion\Exceptions\BarionConnectionException;
 use LaravelBarion\LaravelBarion\Exceptions\BarionException;
+use LaravelBarion\LaravelBarion\Exceptions\BarionResponseException;
+use Spatie\LaravelData\Data;
 use Throwable;
 
 class LaravelBarion
 {
     public const string CALLBACK_ROUTE = 'laravel-barion.callback';
+
+    public const string CALLBACK_RATE_LIMITER = 'laravel-barion.callback';
+
+    /**
+     * Request fields holding money amounts, rounded to 2 decimals before sending.
+     */
+    private const array AMOUNT_FIELDS = ['Total', 'UnitPrice', 'ItemTotal', 'AmountToRefund', 'Amount'];
 
     public function __construct(
         private readonly Config $config,
@@ -70,7 +79,7 @@ class LaravelBarion
         $paymentId = $response['PaymentId'] ?? null;
         $response['GatewayUrl'] = is_string($paymentId) ? $this->gatewayUrl($paymentId) : null;
 
-        return PaymentResponseData::from($response);
+        return $this->map(PaymentResponseData::class, '/v2/Payment/Start', $response);
     }
 
     /**
@@ -80,35 +89,27 @@ class LaravelBarion
     {
         $endpoint = '/v4/Payment/'.rawurlencode($paymentId).'/PaymentState';
 
-        return PaymentStateData::from($this->send('GET', $endpoint));
+        return $this->map(PaymentStateData::class, $endpoint, $this->send('GET', $endpoint));
     }
 
     public function refund(RefundRequestData $request): RefundResponseData
     {
-        return RefundResponseData::from(
-            $this->post('/v2/Payment/Refund', $request->toArray(), $request->idempotencyKey),
-        );
+        return $this->map(RefundResponseData::class, '/v2/Payment/Refund', $this->post('/v2/Payment/Refund', $request->toArray(), $request->idempotencyKey));
     }
 
     public function finishReservation(FinishReservationRequestData $request): PaymentOperationResponseData
     {
-        return PaymentOperationResponseData::from(
-            $this->post('/v2/Payment/FinishReservation', $request->toArray(), $request->idempotencyKey),
-        );
+        return $this->map(PaymentOperationResponseData::class, '/v2/Payment/FinishReservation', $this->post('/v2/Payment/FinishReservation', $request->toArray(), $request->idempotencyKey));
     }
 
     public function capture(CaptureRequestData $request): PaymentOperationResponseData
     {
-        return PaymentOperationResponseData::from(
-            $this->post('/v2/Payment/Capture', $request->toArray(), $request->idempotencyKey),
-        );
+        return $this->map(PaymentOperationResponseData::class, '/v2/Payment/Capture', $this->post('/v2/Payment/Capture', $request->toArray(), $request->idempotencyKey));
     }
 
     public function cancelAuthorization(CancelAuthorizationRequestData $request): PaymentOperationResponseData
     {
-        return PaymentOperationResponseData::from(
-            $this->post('/v2/Payment/CancelAuthorization', $request->toArray(), $request->idempotencyKey),
-        );
+        return $this->map(PaymentOperationResponseData::class, '/v2/Payment/CancelAuthorization', $this->post('/v2/Payment/CancelAuthorization', $request->toArray(), $request->idempotencyKey));
     }
 
     /**
@@ -158,12 +159,28 @@ class LaravelBarion
     }
 
     /**
+     * @template TData of Data
+     *
+     * @param  class-string<TData>  $dataClass
+     * @param  array<array-key, mixed>  $response
+     * @return TData
+     */
+    private function map(string $dataClass, string $endpoint, array $response): Data
+    {
+        try {
+            return $dataClass::from($response);
+        } catch (Throwable $exception) {
+            throw BarionResponseException::unmappable($endpoint, $dataClass, $response, $exception);
+        }
+    }
+
+    /**
      * @param  array<array-key, mixed>  $body
      * @return array<array-key, mixed>
      */
     private function post(string $endpoint, array $body, ?string $idempotencyKey): array
     {
-        $body = $this->withoutNulls($body);
+        $body = $this->roundAmounts($this->withoutNulls($body));
 
         return $this->send('POST', $endpoint, $body, $idempotencyKey ?? $this->idempotencyKeyFor($endpoint, $body));
     }
@@ -286,6 +303,26 @@ class LaravelBarion
         }
 
         return $result;
+    }
+
+    /**
+     * Rounds money fields to 2 decimals and strips float noise from other
+     * numbers, so 0.1 + 0.2 is sent as 0.3 instead of 0.30000000000000004.
+     *
+     * @param  array<array-key, mixed>  $data
+     * @return array<array-key, mixed>
+     */
+    private function roundAmounts(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            $data[$key] = match (true) {
+                is_array($value) => $this->roundAmounts($value),
+                is_float($value) => round($value, in_array($key, self::AMOUNT_FIELDS, true) ? 2 : 10),
+                default => $value,
+            };
+        }
+
+        return $data;
     }
 
     private function intConfig(string $key, int $default): int

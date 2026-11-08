@@ -6,6 +6,7 @@ namespace LaravelBarion\LaravelBarion\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
 use LaravelBarion\LaravelBarion\LaravelBarion;
 
 final class CallbackController
@@ -23,7 +24,17 @@ final class CallbackController
             return new Response('Invalid paymentId.', 400);
         }
 
-        $barion->handleCallback($paymentId);
+        try {
+            $barion->handleCallback($paymentId);
+        } catch (BarionApiException $exception) {
+            // A well-formed id that Barion does not know is not a real callback:
+            // answer quietly instead of logging an error for every probe.
+            if ($exception->hasErrorCode('NotExistingPaymentId')) {
+                return new Response('Unknown paymentId.', 404);
+            }
+
+            throw $exception;
+        }
 
         return new Response('', 200);
     }

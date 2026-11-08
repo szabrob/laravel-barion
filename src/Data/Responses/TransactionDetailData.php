@@ -7,7 +7,7 @@ namespace LaravelBarion\LaravelBarion\Data\Responses;
 use Carbon\CarbonImmutable;
 use LaravelBarion\LaravelBarion\Data\Casts\BarionDateTimeCast;
 use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
-use LaravelBarion\LaravelBarion\Data\ItemData;
+use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
 use LaravelBarion\LaravelBarion\Enums\Currency;
 use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -19,8 +19,10 @@ use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 #[MapInputName(StudlyCaseMapper::class)]
 final class TransactionDetailData extends Data
 {
+    use IgnoresNullInput;
+
     /**
-     * @param  array<int, ItemData>  $items
+     * @param  array<int, TransactionItemData>  $items
      */
     public function __construct(
         public readonly ?string $transactionId = null,
@@ -37,7 +39,7 @@ final class TransactionDetailData extends Data
         #[WithCast(LenientEnumCast::class, TransactionStatus::class)]
         public readonly ?TransactionStatus $status = null,
         public readonly ?string $transactionType = null,
-        #[DataCollectionOf(ItemData::class)]
+        #[DataCollectionOf(TransactionItemData::class)]
         public readonly array $items = [],
         public readonly ?string $relatedId = null,
         #[MapInputName('POSId')]

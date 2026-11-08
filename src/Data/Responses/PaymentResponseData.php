@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelBarion\LaravelBarion\Data\Responses;
 
 use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
+use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
 use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use LaravelBarion\LaravelBarion\Enums\RecurrenceResult;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -19,6 +20,8 @@ use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 #[MapInputName(StudlyCaseMapper::class)]
 final class PaymentResponseData extends Data
 {
+    use IgnoresNullInput;
+
     /**
      * @param  array<int, TransactionResponseData>  $transactions
      */

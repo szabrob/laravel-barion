@@ -26,6 +26,7 @@ use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 final class PaymentRequestData extends Data
 {
     /**
+     * @param  string  $paymentRequestId  Unique per payment attempt (e.g. "order-1001-2"). The same request always gets the same idempotency key, so reusing it returns the earlier, possibly canceled or expired payment.
      * @param  array<int, PaymentTransactionData>  $transactions
      * @param  array<int, FundingSource>  $fundingSources
      * @param  string  $paymentWindow  Format: d.hh:mm:ss or hh:mm:ss.

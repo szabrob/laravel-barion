@@ -5,11 +5,14 @@ declare(strict_types=1);
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use LaravelBarion\LaravelBarion\Data\ItemData;
 use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
 use LaravelBarion\LaravelBarion\Data\ThreeDSecure\AddressData;
 use LaravelBarion\LaravelBarion\Data\ThreeDSecure\GiftCardPurchaseData;
 use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PayerAccountInformationData;
 use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
+use LaravelBarion\LaravelBarion\Enums\Currency;
 use LaravelBarion\LaravelBarion\Enums\FundingSource;
 use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\AccountCreationIndicator;
@@ -17,6 +20,7 @@ use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ChallengePreference;
 use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\PurchaseType;
 use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
 use LaravelBarion\LaravelBarion\Exceptions\BarionException;
+use LaravelBarion\LaravelBarion\Exceptions\BarionResponseException;
 use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
 
 function fakeStart(): void
@@ -219,4 +223,34 @@ it('serializes the 3D Secure data', function (): void {
 
         return true;
     });
+});
+
+it('rounds amounts and removes float noise before sending', function (): void {
+    fakeStart();
+
+    LaravelBarion::startPayment(new PaymentRequestData(
+        paymentRequestId: 'order-1001',
+        transactions: [new PaymentTransactionData(
+            posTransactionId: 'order-1001-t1',
+            total: 0.1 + 0.2,
+            items: [new ItemData(name: 'Tea', description: 'Green', quantity: 0.1 + 0.2, unit: 'kg', unitPrice: 1, itemTotal: 0.30000000000000004)],
+        )],
+        currency: Currency::EUR,
+    ));
+
+    Http::assertSent(function (Request $request): bool {
+        expect($request->body())->not->toContain('0.30000000000000004')
+            ->and($request['Transactions'][0]['Total'])->toBe(0.3)
+            ->and($request['Transactions'][0]['Items'][0]['Quantity'])->toBe(0.3)
+            ->and($request['Transactions'][0]['Items'][0]['ItemTotal'])->toBe(0.3);
+
+        return true;
+    });
+});
+
+it('rejects a start response without a payment id', function (): void {
+    Http::fake(['*' => Http::response(['Status' => 'Prepared', 'Errors' => []])]);
+
+    expect(fn () => LaravelBarion::startPayment(paymentRequest()))
+        ->toThrow(BarionResponseException::class, 'cannot be mapped to [PaymentResponseData]');
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LaravelBarion\LaravelBarion\Data\Responses;
 
+use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
 use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapInputName;
@@ -16,6 +17,8 @@ use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 #[MapInputName(StudlyCaseMapper::class)]
 final class PaymentOperationResponseData extends Data
 {
+    use IgnoresNullInput;
+
     /**
      * @param  array<int, TransactionResponseData>  $transactions
      */

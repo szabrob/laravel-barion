@@ -27,6 +27,7 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 
 ### 2. Start the payment
 
+- create a new payment attempt for every "Pay" click, and use it in `paymentRequestId` and `posTransactionId` (e.g. `order-1001-2`). The same request returns the same Barion payment, so reusing the id after a cancel or expiry brings back the old payment.
 - build `PaymentRequestData` with `PaymentTransactionData` and `ItemData` (namespace `LaravelBarion\LaravelBarion\Data\...`)
 - call `LaravelBarion::startPayment($request)`, store `$response->paymentId` on the order, and redirect to `$response->gatewayUrl`
 - `payee` defaults to the configured payee, and `callbackUrl` defaults to the package route `laravel-barion.callback`
@@ -47,7 +48,9 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 
 - auth uses the `x-pos-key` header, set by the package. Never add `POSKey` to request bodies.
 - idempotency keys are sent automatically and derived from the request. Pass `idempotencyKey:` only when you need your own key.
-- errors: `BarionApiException` (`status`, `errors`), `BarionConnectionException`, and `BarionException` for configuration problems
+- errors: `BarionApiException` (`status`, `errors`, `hasErrorCode()`), `BarionConnectionException`, `BarionResponseException` (unexpected response shape, has the raw `body`), and `BarionException` for configuration problems
+- the callback route is rate limited per IP (`callback.rate_limit`, default 120 per minute). Unknown payment ids get a 404.
+- hide the `x-pos-key` header in Telescope and other HTTP request loggers
 - Barion Pixel: `<x-laravel-barion::pixel />` in the layout `<head>`. It needs `BARION_PIXEL_ID` and accepts an optional `:nonce`.
 - tests: fake `api.test.barion.com/*` with `Http::fake()` and post to `/barion/callback`
 - full docs: the package `README.md`
@@ -56,9 +59,9 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 
 ```php
 $payment = LaravelBarion::startPayment(new PaymentRequestData(
-    paymentRequestId: "order-{$order->id}",
+    paymentRequestId: "order-{$order->id}-{$attempt->id}",
     transactions: [new PaymentTransactionData(
-        posTransactionId: "order-{$order->id}-1",
+        posTransactionId: "order-{$order->id}-{$attempt->id}",
         total: $order->total,
         items: $order->lines->map(fn ($line) => new ItemData(
             name: $line->name, description: $line->name, quantity: $line->qty,
@@ -76,4 +79,5 @@ return redirect()->away($payment->gatewayUrl);
 - marking an order paid from the callback request or the redirect query string instead of `PaymentStateData`
 - calling the deprecated v2 `GetPaymentState` endpoint or building Barion HTTP calls by hand
 - reusing the same `posTransactionId` for different refunds
+- reusing a `paymentRequestId` for a new payment attempt (e.g. `"order-{$order->id}"` alone)
 - assuming a payment event arrives exactly once

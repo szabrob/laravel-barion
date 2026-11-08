@@ -20,6 +20,7 @@ abstract class TestCase extends Orchestra
 
     protected function defineEnvironment($app): void
     {
+        $app['config']->set('cache.default', 'array');
         $app['config']->set('laravel-barion.environment', 'test');
         $app['config']->set('laravel-barion.test.pos_key', 'test-pos-key');
         $app['config']->set('laravel-barion.test.payee', 'test-payee@example.com');

@@ -7,6 +7,7 @@ namespace LaravelBarion\LaravelBarion\Data\Responses;
 use Carbon\CarbonImmutable;
 use LaravelBarion\LaravelBarion\Data\Casts\BarionDateTimeCast;
 use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
+use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
 use LaravelBarion\LaravelBarion\Enums\Currency;
 use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use LaravelBarion\LaravelBarion\Enums\PaymentType;
@@ -24,6 +25,8 @@ use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 #[MapInputName(StudlyCaseMapper::class)]
 final class PaymentStateData extends Data
 {
+    use IgnoresNullInput;
+
     /**
      * @param  array<int, string>  $allowedFundingSources
      * @param  array<int, TransactionDetailData>  $transactions

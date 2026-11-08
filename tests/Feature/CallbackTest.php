@@ -11,6 +11,7 @@ use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use LaravelBarion\LaravelBarion\Events\PaymentFailed;
 use LaravelBarion\LaravelBarion\Events\PaymentStateReceived;
 use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
+use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
 use LaravelBarion\LaravelBarion\LaravelBarion;
 
 beforeEach(function (): void {
@@ -96,4 +97,47 @@ it('can be handled manually from the app', function (): void {
 
     expect($state->status)->toBe(PaymentStatus::Expired);
     Event::assertDispatched(PaymentFailed::class);
+});
+
+it('answers an unknown payment id quietly with 404', function (): void {
+    Http::fake(['*' => Http::response(['Errors' => [[
+        'Title' => 'The given payment id is invalid',
+        'ErrorCode' => 'NotExistingPaymentId',
+    ]]], 400)]);
+
+    $this->withoutExceptionHandling();
+
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertNotFound();
+
+    Http::assertSentCount(1);
+    Event::assertNothingDispatched();
+});
+
+it('still fails loudly on authentication errors', function (): void {
+    Http::fake(['*' => Http::response(['Errors' => [['ErrorCode' => 'AuthenticationFailed', 'Title' => 'User authentication failed.']]], 401)]);
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->post('/barion/callback', ['paymentId' => PAYMENT_ID]))
+        ->toThrow(BarionApiException::class, 'AuthenticationFailed');
+});
+
+it('rate limits the callback route per IP address', function (): void {
+    Http::fake(['*' => Http::response(paymentStateResponse())]);
+    config()->set('laravel-barion.callback.rate_limit', 2);
+
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertTooManyRequests();
+
+    Http::assertSentCount(2);
+});
+
+it('can disable the callback rate limit', function (): void {
+    Http::fake(['*' => Http::response(paymentStateResponse())]);
+    config()->set('laravel-barion.callback.rate_limit', null);
+
+    foreach (range(1, 5) as $attempt) {
+        $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+    }
 });

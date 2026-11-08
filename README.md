@@ -58,7 +58,8 @@ The test shop and the live shop have different POS keys. The package always read
 
 - **Authentication**: the POS key goes in the `x-pos-key` header. It is never put in the request body or the query string.
 - **Payment state**: the package uses the v4 `GET /v4/Payment/{paymentId}/PaymentState` endpoint. The deprecated v2 `GetPaymentState` endpoint is not used.
-- **Idempotency**: every POST call sends an `Idempotency-Key` header. If you don't set one, the package derives it from the environment, the endpoint and the request body. Sending the same request again, for example from a re-queued job, reuses the same key, so Barion does not run the operation twice. Pass `idempotencyKey:` on any request DTO to use your own key.
+- **Idempotency**: every POST call sends an `Idempotency-Key` header. If you don't set one, the package derives it from the environment, the endpoint and the request body. Sending the same request again, for example from a re-queued job, reuses the same key. Barion then returns the original result instead of running the operation again. Pass `idempotencyKey:` on any request DTO to use your own key.
+- **Amounts**: money fields (`Total`, `UnitPrice`, `ItemTotal`, `AmountToRefund`) are rounded to 2 decimals before sending. Other numbers lose their float noise, so `0.1 + 0.2` is sent as `0.3`.
 - **Retries**: connection errors and 5xx responses are retried with the same idempotency key (`http.retry` config). 4xx responses are not retried.
 
 ## Usage
@@ -74,11 +75,13 @@ use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
 use LaravelBarion\LaravelBarion\Enums\Currency;
 use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
 
+$attempt = $order->paymentAttempts()->create(); // a new attempt every time the customer clicks "Pay"
+
 $payment = LaravelBarion::startPayment(new PaymentRequestData(
-    paymentRequestId: "order-{$order->id}",
+    paymentRequestId: "order-{$order->id}-{$attempt->id}",
     transactions: [
         new PaymentTransactionData(
-            posTransactionId: "order-{$order->id}-1",
+            posTransactionId: "order-{$order->id}-{$attempt->id}",
             total: 1500,
             items: [
                 new ItemData(name: 'T-shirt', description: 'Black, M', quantity: 1, unit: 'pcs', unitPrice: 1500, itemTotal: 1500, sku: 'TS-BLK-M'),
@@ -98,6 +101,8 @@ $order->update(['barion_payment_id' => $payment->paymentId]);
 return redirect()->away($payment->gatewayUrl);
 ```
 
+> **Use a new `paymentRequestId` for every payment attempt.** Because the idempotency key comes from the request body, starting the same request again returns the *same* Barion payment. That protects against duplicate payments on retries. But if the customer canceled the payment or let it expire, a "pay again" with the same `paymentRequestId` and the same data would bring back the old, closed payment. Include an attempt number (as above) or another per-attempt value in `paymentRequestId` and `posTransactionId`.
+
 `PaymentRequestData::from([...])` with a camelCase array works too. Optional 3D Secure data (`shippingAddress`, `billingAddress`, `payerAccountInformation`, `purchaseInformation`, `challengePreference`) and recurring payment fields (`initiateRecurrence`, `recurrenceId`, `recurrenceType`) are supported. For `PaymentType::Reservation` and `PaymentType::DelayedCapture`, also set `reservationPeriod` or `delayedCapturePeriod`.
 
 ### Callback and events
@@ -107,7 +112,9 @@ Barion calls the callback URL with only the `paymentId`, and the call is not sig
 1. checks that `paymentId` looks like a Barion payment id (`400` otherwise, without calling Barion),
 2. queries the **v4 PaymentState API**. No other value from the callback request is used,
 3. dispatches events with the `PaymentStateData` it got back,
-4. answers `200`. If the state cannot be queried, it answers with an error, so Barion sends the callback again later.
+4. answers `200`. If Barion does not know the payment (`NotExistingPaymentId`), it answers `404` without logging an error. For any other failure (for example a wrong POS key) it answers with an error, so Barion sends the callback again later.
+
+Every callback makes an outgoing API call, so the route is rate limited per IP address: `callback.rate_limit` requests per minute, `120` by default, `null` disables it. Throttled requests get a `429`, and Barion retries them.
 
 | Event                  | When                                          |
 |------------------------|-----------------------------------------------|
@@ -199,7 +206,19 @@ All three return a `PaymentOperationResponseData` (`isSuccessful`, `status`, `tr
 |-----------------------------|----------------------------------------------------------------------|
 | `BarionApiException`        | Barion answered with an error status or a non-empty `Errors` list. It has `status`, `errors` (`ApiErrorData[]`) and the raw `body`. |
 | `BarionConnectionException` | Barion could not be reached, even after the retries.                 |
-| `BarionException`           | Configuration problem (unknown environment, missing POS key or payee). The two exceptions above extend this class. |
+| `BarionResponseException`   | Barion answered successfully, but the response does not fit the expected DTO, for example a required field is missing. It has `dataClass` and the raw `body`. |
+| `BarionException`           | Configuration problem (unknown environment, missing POS key or payee). All the exceptions above extend this class. |
+
+`BarionApiException::hasErrorCode('NotExistingPaymentId')` checks for a specific Barion error code.
+
+### Keeping the POS key out of logs
+
+The POS key is sent in the `x-pos-key` request header. Tools that record outgoing HTTP requests (Telescope, Nightwatch, custom HTTP client logging) also store the headers, unless you tell them not to. For Telescope:
+
+```php
+// App\Providers\TelescopeServiceProvider::hideSensitiveRequestDetails()
+Telescope::hideRequestHeaders(['x-pos-key']);
+```
 
 ### Barion Pixel
 

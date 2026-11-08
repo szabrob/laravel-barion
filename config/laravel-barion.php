@@ -50,12 +50,17 @@ return [
     | events with that verified state only. When enabled, the route URL is
     | used as the default CallbackUrl of every started payment.
     |
+    | Every callback triggers an outgoing PaymentState request, so the route
+    | is rate limited per IP address ("rate_limit" requests per minute, null
+    | disables it). Throttled callbacks get a 429 and Barion retries them.
+    |
     */
 
     'callback' => [
         'enabled' => true,
         'path' => 'barion/callback',
         'middleware' => [],
+        'rate_limit' => 120,
     ],
 
     /*

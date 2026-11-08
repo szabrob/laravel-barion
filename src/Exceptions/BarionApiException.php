@@ -21,6 +21,17 @@ final class BarionApiException extends BarionException
         parent::__construct($message, $status);
     }
 
+    public function hasErrorCode(string $errorCode): bool
+    {
+        foreach ($this->errors as $error) {
+            if ($error->errorCode === $errorCode) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @param  array<array-key, mixed>  $body
      */
