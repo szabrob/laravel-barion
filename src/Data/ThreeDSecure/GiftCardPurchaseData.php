@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\ThreeDSecure;
+namespace Szabrob\LaravelBarion\Data\ThreeDSecure;
 
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;

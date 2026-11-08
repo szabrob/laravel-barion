@@ -5,23 +5,23 @@ declare(strict_types=1);
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use LaravelBarion\LaravelBarion\Data\ItemData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\AddressData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\GiftCardPurchaseData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PayerAccountInformationData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
-use LaravelBarion\LaravelBarion\Enums\Currency;
-use LaravelBarion\LaravelBarion\Enums\FundingSource;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\AccountCreationIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ChallengePreference;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\PurchaseType;
-use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
-use LaravelBarion\LaravelBarion\Exceptions\BarionException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionResponseException;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
+use Szabrob\LaravelBarion\Data\ItemData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentTransactionData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\AddressData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\GiftCardPurchaseData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\PayerAccountInformationData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
+use Szabrob\LaravelBarion\Enums\Currency;
+use Szabrob\LaravelBarion\Enums\FundingSource;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\AccountCreationIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\ChallengePreference;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\PurchaseType;
+use Szabrob\LaravelBarion\Enums\TransactionStatus;
+use Szabrob\LaravelBarion\Exceptions\BarionException;
+use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
+use Szabrob\LaravelBarion\Facades\Barion;
 
 function fakeStart(): void
 {
@@ -53,7 +53,7 @@ function fakeStart(): void
 it('starts a payment on the test API with the POS key in the x-pos-key header only', function (): void {
     fakeStart();
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     Http::assertSent(function (Request $request): bool {
         expect($request->url())->toBe('https://api.test.barion.com/v2/Payment/Start')
@@ -69,7 +69,7 @@ it('starts a payment on the test API with the POS key in the x-pos-key header on
 it('maps the request DTO to the Barion request body', function (): void {
     fakeStart();
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     Http::assertSent(function (Request $request): bool {
         expect($request->data())->toBe([
@@ -114,7 +114,7 @@ it('keeps an explicit payee and callback url', function (): void {
         callbackUrl: 'https://shop.test/custom-callback',
     );
 
-    LaravelBarion::startPayment($request);
+    Barion::startPayment($request);
 
     Http::assertSent(function (Request $request): bool {
         expect($request['Transactions'][0]['Payee'])->toBe('other@example.com')
@@ -129,7 +129,7 @@ it('omits the callback url when the package callback route is disabled', functio
     fakeStart();
     config()->set('laravel-barion.callback.enabled', false);
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     Http::assertSent(fn (Request $request): bool => ! array_key_exists('CallbackUrl', $request->data()));
 });
@@ -137,7 +137,7 @@ it('omits the callback url when the package callback route is disabled', functio
 it('returns a typed response with the gateway url', function (): void {
     fakeStart();
 
-    $response = LaravelBarion::startPayment(paymentRequest());
+    $response = Barion::startPayment(paymentRequest());
 
     expect($response->paymentId)->toBe(PAYMENT_ID)
         ->and($response->status)->toBe(PaymentStatus::Prepared)
@@ -153,7 +153,7 @@ it('uses the production API, gateway, POS key and payee in the production enviro
     fakeStart();
     config()->set('laravel-barion.environment', 'production');
 
-    $response = LaravelBarion::startPayment(paymentRequest());
+    $response = Barion::startPayment(paymentRequest());
 
     expect($response->gatewayUrl)->toBe('https://secure.barion.com/Pay?id='.PAYMENT_ID);
 
@@ -171,7 +171,7 @@ it('never falls back to the POS key of the other environment', function (): void
     config()->set('laravel-barion.environment', 'production');
     config()->set('laravel-barion.production.pos_key', null);
 
-    expect(fn () => LaravelBarion::startPayment(paymentRequest()))
+    expect(fn () => Barion::startPayment(paymentRequest()))
         ->toThrow(BarionException::class, 'Missing Barion POS key for the [production] environment');
 
     Http::assertNothingSent();
@@ -181,7 +181,7 @@ it('rejects an unknown environment', function (): void {
     Http::fake();
     config()->set('laravel-barion.environment', 'staging');
 
-    expect(fn () => LaravelBarion::startPayment(paymentRequest()))
+    expect(fn () => Barion::startPayment(paymentRequest()))
         ->toThrow(BarionException::class, 'Invalid Barion environment [staging]');
 
     Http::assertNothingSent();
@@ -191,7 +191,7 @@ it('requires a payee', function (): void {
     Http::fake();
     config()->set('laravel-barion.test.payee', null);
 
-    expect(fn () => LaravelBarion::startPayment(paymentRequest()))
+    expect(fn () => Barion::startPayment(paymentRequest()))
         ->toThrow(BarionException::class, 'no default payee');
 
     Http::assertNothingSent();
@@ -200,7 +200,7 @@ it('requires a payee', function (): void {
 it('serializes the 3D Secure data', function (): void {
     fakeStart();
 
-    LaravelBarion::startPayment(new PaymentRequestData(
+    Barion::startPayment(new PaymentRequestData(
         paymentRequestId: 'order-1001',
         transactions: paymentRequest()->transactions,
         challengePreference: ChallengePreference::NoPreference,
@@ -228,7 +228,7 @@ it('serializes the 3D Secure data', function (): void {
 it('rounds amounts and removes float noise before sending', function (): void {
     fakeStart();
 
-    LaravelBarion::startPayment(new PaymentRequestData(
+    Barion::startPayment(new PaymentRequestData(
         paymentRequestId: 'order-1001',
         transactions: [new PaymentTransactionData(
             posTransactionId: 'order-1001-t1',
@@ -251,6 +251,6 @@ it('rounds amounts and removes float noise before sending', function (): void {
 it('rejects a start response without a payment id', function (): void {
     Http::fake(['*' => Http::response(['Status' => 'Prepared', 'Errors' => []])]);
 
-    expect(fn () => LaravelBarion::startPayment(paymentRequest()))
+    expect(fn () => Barion::startPayment(paymentRequest()))
         ->toThrow(BarionResponseException::class, 'cannot be mapped to [PaymentResponseData]');
 });

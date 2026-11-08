@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Responses;
+namespace Szabrob\LaravelBarion\Data\Responses;
 
-use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+use Szabrob\LaravelBarion\Data\Concerns\IgnoresNullInput;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
 
 /**
  * Shared response of the FinishReservation, Capture and CancelAuthorization endpoints.

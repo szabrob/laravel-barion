@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Responses;
+namespace Szabrob\LaravelBarion\Data\Responses;
 
 use Carbon\CarbonImmutable;
-use LaravelBarion\LaravelBarion\Data\Casts\BarionDateTimeCast;
-use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
-use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
-use LaravelBarion\LaravelBarion\Enums\Currency;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Enums\PaymentType;
-use LaravelBarion\LaravelBarion\Enums\RecurrenceType;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+use Szabrob\LaravelBarion\Data\Casts\BarionDateTimeCast;
+use Szabrob\LaravelBarion\Data\Casts\LenientEnumCast;
+use Szabrob\LaravelBarion\Data\Concerns\IgnoresNullInput;
+use Szabrob\LaravelBarion\Enums\Currency;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\PaymentType;
+use Szabrob\LaravelBarion\Enums\RecurrenceType;
 
 /**
  * Response of the v4 Payment/{paymentId}/PaymentState endpoint: the only

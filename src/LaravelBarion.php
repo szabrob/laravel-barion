@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion;
+namespace Szabrob\LaravelBarion;
 
 use BackedEnum;
 use Illuminate\Contracts\Config\Repository as Config;
@@ -13,24 +13,24 @@ use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
-use LaravelBarion\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\CaptureRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\FinishReservationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\RefundRequestData;
-use LaravelBarion\LaravelBarion\Data\Responses\PaymentOperationResponseData;
-use LaravelBarion\LaravelBarion\Data\Responses\PaymentResponseData;
-use LaravelBarion\LaravelBarion\Data\Responses\PaymentStateData;
-use LaravelBarion\LaravelBarion\Data\Responses\RefundResponseData;
-use LaravelBarion\LaravelBarion\Enums\Environment;
-use LaravelBarion\LaravelBarion\Events\PaymentFailed;
-use LaravelBarion\LaravelBarion\Events\PaymentStateReceived;
-use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
-use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionConnectionException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionResponseException;
 use Spatie\LaravelData\Data;
+use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
+use Szabrob\LaravelBarion\Data\Requests\RefundRequestData;
+use Szabrob\LaravelBarion\Data\Responses\PaymentOperationResponseData;
+use Szabrob\LaravelBarion\Data\Responses\PaymentResponseData;
+use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
+use Szabrob\LaravelBarion\Data\Responses\RefundResponseData;
+use Szabrob\LaravelBarion\Enums\Environment;
+use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentStateReceived;
+use Szabrob\LaravelBarion\Events\PaymentSucceeded;
+use Szabrob\LaravelBarion\Exceptions\BarionApiException;
+use Szabrob\LaravelBarion\Exceptions\BarionConnectionException;
+use Szabrob\LaravelBarion\Exceptions\BarionException;
+use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
 use Throwable;
 
 class LaravelBarion

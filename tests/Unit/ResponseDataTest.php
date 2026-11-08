@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use LaravelBarion\LaravelBarion\Data\Responses\UserNameData;
-use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
+use Szabrob\LaravelBarion\Data\Responses\UserNameData;
+use Szabrob\LaravelBarion\Exceptions\BarionApiException;
 
 it('picks the best display name of a Barion user', function (array $name, ?string $expected): void {
     expect(UserNameData::from($name)->displayName())->toBe($expected);

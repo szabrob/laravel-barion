@@ -35,19 +35,19 @@
                 </div>
                 <div class="row">
                     <div><label>Pénznem</label>
-                        <select name="currency">@foreach (\LaravelBarion\LaravelBarion\Enums\Currency::cases() as $case)<option @selected(old('currency', 'HUF') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
+                        <select name="currency">@foreach (\Szabrob\LaravelBarion\Enums\Currency::cases() as $case)<option @selected(old('currency', 'HUF') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
                     <div><label>Nyelv</label>
-                        <select name="locale">@foreach (\LaravelBarion\LaravelBarion\Enums\Locale::cases() as $case)<option value="{{ $case->value }}" @selected(old('locale', 'hu-HU') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
+                        <select name="locale">@foreach (\Szabrob\LaravelBarion\Enums\Locale::cases() as $case)<option value="{{ $case->value }}" @selected(old('locale', 'hu-HU') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
                 </div>
                 <div class="row">
                     <div><label>Fizetés típusa</label>
-                        <select name="payment_type">@foreach (\LaravelBarion\LaravelBarion\Enums\PaymentType::cases() as $case)<option @selected(old('payment_type', 'Immediate') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
+                        <select name="payment_type">@foreach (\Szabrob\LaravelBarion\Enums\PaymentType::cases() as $case)<option @selected(old('payment_type', 'Immediate') === $case->value)>{{ $case->value }}</option>@endforeach</select></div>
                     <div><label>Foglalási / capture időszak</label>
                         <input name="period" value="{{ old('period') }}" placeholder="1.00:00:00"></div>
                 </div>
                 <label>Fizetési módok</label>
                 <select name="funding_sources[]" multiple>
-                    @foreach (\LaravelBarion\LaravelBarion\Enums\FundingSource::cases() as $case)
+                    @foreach (\Szabrob\LaravelBarion\Enums\FundingSource::cases() as $case)
                         <option value="{{ $case->value }}" @selected(in_array($case->value, old('funding_sources', ['All']), true))>{{ $case->value }}</option>
                     @endforeach
                 </select>

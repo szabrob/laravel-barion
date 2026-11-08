@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion as LaravelBarionFacade;
-use LaravelBarion\LaravelBarion\LaravelBarion;
-use LaravelBarion\LaravelBarion\LaravelBarionServiceProvider;
+use Szabrob\LaravelBarion\Facades\Barion;
+use Szabrob\LaravelBarion\LaravelBarion;
+use Szabrob\LaravelBarion\LaravelBarionServiceProvider;
 
 it('resolves the client as a singleton', function (): void {
     expect(app(LaravelBarion::class))
         ->toBeInstanceOf(LaravelBarion::class)
         ->toBe(app(LaravelBarion::class))
-        ->toBe(LaravelBarionFacade::getFacadeRoot());
+        ->toBe(Barion::getFacadeRoot());
 });
 
 it('merges the package config with test environment defaults', function (): void {

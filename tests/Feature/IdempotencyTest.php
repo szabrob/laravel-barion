@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
+use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
+use Szabrob\LaravelBarion\Facades\Barion;
 
 /**
  * @return array<int, string>
@@ -20,7 +20,7 @@ function sentIdempotencyKeys(): array
 it('sends an idempotency key with every payment start by default', function (): void {
     Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'Status' => 'Prepared'])]);
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     expect(sentIdempotencyKeys()[0])->toMatch('/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/');
 });
@@ -28,9 +28,9 @@ it('sends an idempotency key with every payment start by default', function (): 
 it('derives the same key for the same request so retries cannot start a second payment', function (): void {
     Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'Status' => 'Prepared'])]);
 
-    LaravelBarion::startPayment(paymentRequest());
-    LaravelBarion::startPayment(paymentRequest());
-    LaravelBarion::startPayment(paymentRequest('order-1002'));
+    Barion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest('order-1002'));
 
     [$first, $retry, $other] = sentIdempotencyKeys();
 
@@ -40,9 +40,9 @@ it('derives the same key for the same request so retries cannot start a second p
 it('derives different keys per environment', function (): void {
     Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'Status' => 'Prepared'])]);
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
     config()->set('laravel-barion.environment', 'production');
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     [$test, $production] = sentIdempotencyKeys();
 
@@ -52,7 +52,7 @@ it('derives different keys per environment', function (): void {
 it('uses an explicit idempotency key and never sends it in the body', function (): void {
     Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'Status' => 'Prepared'])]);
 
-    LaravelBarion::startPayment(PaymentRequestData::from([
+    Barion::startPayment(PaymentRequestData::from([
         'paymentRequestId' => 'order-1001',
         'transactions' => [[
             'posTransactionId' => 'order-1001-t1',
@@ -73,7 +73,7 @@ it('retries server errors with the same idempotency key', function (): void {
         ->push(['PaymentId' => PAYMENT_ID, 'Status' => 'Prepared']),
     ]);
 
-    LaravelBarion::startPayment(paymentRequest());
+    Barion::startPayment(paymentRequest());
 
     $keys = sentIdempotencyKeys();
 

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use LaravelBarion\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\CaptureRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\FinishReservationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\RefundRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\TransactionToFinishData;
-use LaravelBarion\LaravelBarion\Data\Requests\TransactionToRefundData;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
+use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\RefundRequestData;
+use Szabrob\LaravelBarion\Data\Requests\TransactionToFinishData;
+use Szabrob\LaravelBarion\Data\Requests\TransactionToRefundData;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\TransactionStatus;
+use Szabrob\LaravelBarion\Facades\Barion;
 
 function operationResponse(string $status): array
 {
@@ -53,7 +53,7 @@ it('refunds a payment', function (): void {
         'Errors' => [],
     ])]);
 
-    $response = LaravelBarion::refund(refundRequest('refund-1'));
+    $response = Barion::refund(refundRequest('refund-1'));
 
     expect($response->paymentId)->toBe(PAYMENT_ID)
         ->and($response->refundedTransactions[0]->total)->toBe(500.0)
@@ -73,9 +73,9 @@ it('refunds a payment', function (): void {
 it('gives separate refunds separate idempotency keys', function (): void {
     Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID])]);
 
-    LaravelBarion::refund(refundRequest('refund-1'));
-    LaravelBarion::refund(refundRequest('refund-1'));
-    LaravelBarion::refund(refundRequest('refund-2'));
+    Barion::refund(refundRequest('refund-1'));
+    Barion::refund(refundRequest('refund-1'));
+    Barion::refund(refundRequest('refund-2'));
 
     $keys = Http::recorded()->map(fn (array $pair): string => $pair[0]->header('Idempotency-Key')[0])->all();
 
@@ -85,7 +85,7 @@ it('gives separate refunds separate idempotency keys', function (): void {
 it('finishes a reservation', function (): void {
     Http::fake(['*' => Http::response(operationResponse('Succeeded'))]);
 
-    $response = LaravelBarion::finishReservation(new FinishReservationRequestData(PAYMENT_ID, [
+    $response = Barion::finishReservation(new FinishReservationRequestData(PAYMENT_ID, [
         new TransactionToFinishData(transactionId: 'trx-1', total: 1200),
     ]));
 
@@ -102,7 +102,7 @@ it('finishes a reservation', function (): void {
 it('captures a delayed capture payment', function (): void {
     Http::fake(['*' => Http::response(operationResponse('Succeeded'))]);
 
-    $response = LaravelBarion::capture(new CaptureRequestData(PAYMENT_ID, [
+    $response = Barion::capture(new CaptureRequestData(PAYMENT_ID, [
         new TransactionToFinishData(transactionId: 'trx-1', total: 1500, comment: 'Shipped'),
     ]));
 
@@ -117,7 +117,7 @@ it('captures a delayed capture payment', function (): void {
 it('cancels an authorization', function (): void {
     Http::fake(['*' => Http::response(operationResponse('Canceled'))]);
 
-    $response = LaravelBarion::cancelAuthorization(new CancelAuthorizationRequestData(PAYMENT_ID));
+    $response = Barion::cancelAuthorization(new CancelAuthorizationRequestData(PAYMENT_ID));
 
     expect($response->status)->toBe(PaymentStatus::Canceled);
 

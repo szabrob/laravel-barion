@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Casts;
+namespace Szabrob\LaravelBarion\Data\Casts;
 
 use BackedEnum;
 use Spatie\LaravelData\Casts\Cast;

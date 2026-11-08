@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Exceptions;
+namespace Szabrob\LaravelBarion\Exceptions;
 
 use Throwable;
 

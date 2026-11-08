@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Responses;
+namespace Szabrob\LaravelBarion\Data\Responses;
 
-use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
-use LaravelBarion\LaravelBarion\Data\Concerns\IgnoresNullInput;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Enums\RecurrenceResult;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+use Szabrob\LaravelBarion\Data\Casts\LenientEnumCast;
+use Szabrob\LaravelBarion\Data\Concerns\IgnoresNullInput;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\RecurrenceResult;
 
 /**
  * Response of the v2 Payment/Start endpoint. Redirect the customer to $gatewayUrl.

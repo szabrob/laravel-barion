@@ -5,9 +5,9 @@ namespace Workbench\App\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use LaravelBarion\LaravelBarion\Events\PaymentFailed;
-use LaravelBarion\LaravelBarion\Events\PaymentStateReceived;
-use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
+use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentStateReceived;
+use Szabrob\LaravelBarion\Events\PaymentSucceeded;
 use Workbench\App\Support\BarionLog;
 
 class WorkbenchServiceProvider extends ServiceProvider

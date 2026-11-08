@@ -28,21 +28,22 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 ### 2. Start the payment
 
 - create a new payment attempt for every "Pay" click, and use it in `paymentRequestId` and `posTransactionId` (e.g. `order-1001-2`). The same request returns the same Barion payment, so reusing the id after a cancel or expiry brings back the old payment.
-- build `PaymentRequestData` with `PaymentTransactionData` and `ItemData` (namespace `LaravelBarion\LaravelBarion\Data\...`)
-- call `LaravelBarion::startPayment($request)`, store `$response->paymentId` on the order, and redirect to `$response->gatewayUrl`
+- build `PaymentRequestData` with `PaymentTransactionData` and `ItemData` (namespace `Szabrob\LaravelBarion\Data\...`)
+- call the API through the `Szabrob\LaravelBarion\Facades\Barion` facade (auto-aliased as `Barion`) or inject `Szabrob\LaravelBarion\LaravelBarion`
+- call `Barion::startPayment($request)`, store `$response->paymentId` on the order, and redirect to `$response->gatewayUrl`
 - `payee` defaults to the configured payee, and `callbackUrl` defaults to the package route `laravel-barion.callback`
 
 ### 3. React to the verified state
 
-- listen to `LaravelBarion\LaravelBarion\Events\PaymentSucceeded`, `PaymentFailed` or `PaymentStateReceived`. Each has `->paymentState` (`PaymentStateData`) from the v4 PaymentState API.
+- listen to `Szabrob\LaravelBarion\Events\PaymentSucceeded`, `PaymentFailed` or `PaymentStateReceived`. Each has `->paymentState` (`PaymentStateData`) from the v4 PaymentState API.
 - look up the order by `paymentState->paymentId` and keep the listener idempotent, because callbacks repeat
-- on the return page, call `LaravelBarion::paymentState($paymentId)`. Don't trust query parameters.
+- on the return page, call `Barion::paymentState($paymentId)`. Don't trust query parameters.
 
 ### 4. Settle when needed
 
-- `LaravelBarion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund
-- `LaravelBarion::finishReservation(FinishReservationRequestData)` for `PaymentType::Reservation`
-- `LaravelBarion::capture(CaptureRequestData)` and `cancelAuthorization(CancelAuthorizationRequestData)` for `PaymentType::DelayedCapture`
+- `Barion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund
+- `Barion::finishReservation(FinishReservationRequestData)` for `PaymentType::Reservation`
+- `Barion::capture(CaptureRequestData)` and `cancelAuthorization(CancelAuthorizationRequestData)` for `PaymentType::DelayedCapture`
 
 ## Rules, References, and Templates
 
@@ -58,7 +59,7 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 ## Examples
 
 ```php
-$payment = LaravelBarion::startPayment(new PaymentRequestData(
+$payment = Barion::startPayment(new PaymentRequestData(
     paymentRequestId: "order-{$order->id}-{$attempt->id}",
     transactions: [new PaymentTransactionData(
         posTransactionId: "order-{$order->id}-{$attempt->id}",

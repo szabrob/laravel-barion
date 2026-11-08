@@ -7,12 +7,12 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Events\PaymentFailed;
-use LaravelBarion\LaravelBarion\Events\PaymentStateReceived;
-use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
-use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
-use LaravelBarion\LaravelBarion\LaravelBarion;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentStateReceived;
+use Szabrob\LaravelBarion\Events\PaymentSucceeded;
+use Szabrob\LaravelBarion\Exceptions\BarionApiException;
+use Szabrob\LaravelBarion\LaravelBarion;
 
 beforeEach(function (): void {
     Event::fake([PaymentStateReceived::class, PaymentSucceeded::class, PaymentFailed::class]);

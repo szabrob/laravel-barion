@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Enums\ThreeDSecure;
+namespace Szabrob\LaravelBarion\Enums\ThreeDSecure;
 
 enum DeliveryTimeframe: string
 {

@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use LaravelBarion\LaravelBarion\Http\Controllers\CallbackController;
-use LaravelBarion\LaravelBarion\LaravelBarion;
+use Szabrob\LaravelBarion\Http\Controllers\CallbackController;
+use Szabrob\LaravelBarion\LaravelBarion;
 
 if (config('laravel-barion.callback.enabled')) {
     $path = config('laravel-barion.callback.path');

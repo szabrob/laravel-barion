@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Concerns;
+namespace Szabrob\LaravelBarion\Data\Concerns;
 
 /**
  * Barion sends null for absent values (e.g. "Items": null). Dropping them

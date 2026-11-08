@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use LaravelBarion\LaravelBarion\Data\ItemData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
-use LaravelBarion\LaravelBarion\Tests\TestCase;
+use Szabrob\LaravelBarion\Data\ItemData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentTransactionData;
+use Szabrob\LaravelBarion\Tests\TestCase;
 
 uses(TestCase::class)->in(__DIR__);
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Exceptions;
+namespace Szabrob\LaravelBarion\Exceptions;
 
-use LaravelBarion\LaravelBarion\Data\Responses\ApiErrorData;
+use Szabrob\LaravelBarion\Data\Responses\ApiErrorData;
 
 final class BarionApiException extends BarionException
 {

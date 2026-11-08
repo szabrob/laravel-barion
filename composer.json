@@ -37,12 +37,12 @@
     },
     "autoload": {
         "psr-4": {
-            "LaravelBarion\\LaravelBarion\\": "src/"
+            "Szabrob\\LaravelBarion\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "LaravelBarion\\LaravelBarion\\Tests\\": "tests/",
+            "Szabrob\\LaravelBarion\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/",
             "Workbench\\Database\\Factories\\": "workbench/database/factories/",
             "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
@@ -93,10 +93,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LaravelBarion\\LaravelBarion\\LaravelBarionServiceProvider"
+                "Szabrob\\LaravelBarion\\LaravelBarionServiceProvider"
             ],
             "aliases": {
-                "LaravelBarion": "LaravelBarion\\LaravelBarion\\Facades\\LaravelBarion"
+                "Barion": "Szabrob\\LaravelBarion\\Facades\\Barion"
             }
         }
     },

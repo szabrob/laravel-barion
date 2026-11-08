@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use LaravelBarion\LaravelBarion\Enums\Environment;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\Environment;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
 
 it('maps environments to the Barion API and gateway hosts', function (Environment $environment, string $api, string $gateway): void {
     expect($environment->apiUrl())->toBe($api)

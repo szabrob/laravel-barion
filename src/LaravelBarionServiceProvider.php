@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion;
+namespace Szabrob\LaravelBarion;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;

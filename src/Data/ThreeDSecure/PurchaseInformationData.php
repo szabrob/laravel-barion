@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\ThreeDSecure;
+namespace Szabrob\LaravelBarion\Data\ThreeDSecure;
 
 use DateTimeInterface;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\AvailabilityIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\DeliveryTimeframe;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\PurchaseType;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ReOrderIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ShippingAddressIndicator;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\AvailabilityIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\DeliveryTimeframe;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\PurchaseType;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\ReOrderIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\ShippingAddressIndicator;
 
 #[MapOutputName(StudlyCaseMapper::class)]
 final class PurchaseInformationData extends Data

@@ -5,21 +5,21 @@ declare(strict_types=1);
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use LaravelBarion\LaravelBarion\Data\Responses\PaymentStateData;
-use LaravelBarion\LaravelBarion\Enums\Currency;
-use LaravelBarion\LaravelBarion\Enums\PaymentStatus;
-use LaravelBarion\LaravelBarion\Enums\PaymentType;
-use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
-use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionConnectionException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionException;
-use LaravelBarion\LaravelBarion\Exceptions\BarionResponseException;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
+use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
+use Szabrob\LaravelBarion\Enums\Currency;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Enums\PaymentType;
+use Szabrob\LaravelBarion\Enums\TransactionStatus;
+use Szabrob\LaravelBarion\Exceptions\BarionApiException;
+use Szabrob\LaravelBarion\Exceptions\BarionConnectionException;
+use Szabrob\LaravelBarion\Exceptions\BarionException;
+use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
+use Szabrob\LaravelBarion\Facades\Barion;
 
 it('queries the v4 PaymentState endpoint with the x-pos-key header', function (): void {
     Http::fake(['*' => Http::response(paymentStateResponse())]);
 
-    LaravelBarion::paymentState(PAYMENT_ID);
+    Barion::paymentState(PAYMENT_ID);
 
     Http::assertSent(function (Request $request): bool {
         expect($request->method())->toBe('GET')
@@ -35,7 +35,7 @@ it('queries the v4 PaymentState endpoint with the x-pos-key header', function ()
 it('maps the payment state to typed DTOs', function (): void {
     Http::fake(['*' => Http::response(paymentStateResponse())]);
 
-    $state = LaravelBarion::paymentState(PAYMENT_ID);
+    $state = Barion::paymentState(PAYMENT_ID);
 
     expect($state->paymentId)->toBe(PAYMENT_ID)
         ->and($state->status)->toBe(PaymentStatus::Succeeded)
@@ -65,7 +65,7 @@ it('maps the payment state to typed DTOs', function (): void {
 it('tolerates unknown secondary enum values from Barion', function (): void {
     Http::fake(['*' => Http::response(paymentStateResponse())]);
 
-    $transaction = LaravelBarion::paymentState(PAYMENT_ID)->transactions[1];
+    $transaction = Barion::paymentState(PAYMENT_ID)->transactions[1];
 
     expect($transaction->status)->toBeNull()
         ->and($transaction->currency)->toBeNull()
@@ -83,7 +83,7 @@ it('throws an API exception with the Barion errors', function (): void {
     ], 401)]);
 
     try {
-        LaravelBarion::paymentState(PAYMENT_ID);
+        Barion::paymentState(PAYMENT_ID);
         $this->fail('Expected exception.');
     } catch (BarionApiException $exception) {
         expect($exception->status)->toBe(401)
@@ -96,19 +96,19 @@ it('throws an API exception with the Barion errors', function (): void {
 it('throws an API exception for errors in a successful response', function (): void {
     Http::fake(['*' => Http::response(['Errors' => [['ErrorCode' => 'X', 'Title' => 'Bad']]])]);
 
-    expect(fn () => LaravelBarion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class, '[X] Bad');
+    expect(fn () => Barion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class, '[X] Bad');
 });
 
 it('reads problem detail style error messages', function (): void {
     Http::fake(['*' => Http::response(['title' => 'Payment not found'], 404)]);
 
-    expect(fn () => LaravelBarion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class, 'Payment not found');
+    expect(fn () => Barion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class, 'Payment not found');
 });
 
 it('does not retry client errors', function (): void {
     Http::fake(['*' => Http::response(['Errors' => [['Title' => 'Bad request']]], 400)]);
 
-    expect(fn () => LaravelBarion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class);
+    expect(fn () => Barion::paymentState(PAYMENT_ID))->toThrow(BarionApiException::class);
 
     Http::assertSentCount(1);
 });
@@ -121,7 +121,7 @@ it('wraps connection failures', function (): void {
         throw new ConnectionException('timeout');
     }]);
 
-    expect(fn () => LaravelBarion::paymentState(PAYMENT_ID))->toThrow(BarionConnectionException::class, 'timeout')
+    expect(fn () => Barion::paymentState(PAYMENT_ID))->toThrow(BarionConnectionException::class, 'timeout')
         ->and($attempts)->toBe(3);
 });
 
@@ -130,7 +130,7 @@ it('maps incomplete items returned by Barion', function (): void {
     $response['Transactions'][0]['Items'] = [['Name' => 'Fee', 'Description' => null, 'Quantity' => 1, 'Unit' => null, 'UnitPrice' => 100, 'ItemTotal' => 100]];
     Http::fake(['*' => Http::response($response)]);
 
-    $item = LaravelBarion::paymentState(PAYMENT_ID)->transactions[0]->items[0];
+    $item = Barion::paymentState(PAYMENT_ID)->transactions[0]->items[0];
 
     expect($item->name)->toBe('Fee')
         ->and($item->description)->toBeNull()
@@ -151,7 +151,7 @@ it('wraps unmappable responses in a Barion exception with the raw body', functio
     Http::fake(['*' => Http::response([...paymentStateResponse(), 'Status' => 'SomethingNew'])]);
 
     try {
-        LaravelBarion::paymentState(PAYMENT_ID);
+        Barion::paymentState(PAYMENT_ID);
         $this->fail('Expected exception.');
     } catch (BarionResponseException $exception) {
         expect($exception)->toBeInstanceOf(BarionException::class)

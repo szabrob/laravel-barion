@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\ThreeDSecure;
+namespace Szabrob\LaravelBarion\Data\ThreeDSecure;
 
 use DateTimeInterface;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\AccountChangeIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\AccountCreationIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\PasswordChangeIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\PaymentMethodIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ShippingAddressUsageIndicator;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\SuspiciousActivityIndicator;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Attributes\WithTransformer;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
 use Spatie\LaravelData\Transformers\DateTimeInterfaceTransformer;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\AccountChangeIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\AccountCreationIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\PasswordChangeIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\PaymentMethodIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\ShippingAddressUsageIndicator;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\SuspiciousActivityIndicator;
 
 #[MapOutputName(StudlyCaseMapper::class)]
 final class PayerAccountInformationData extends Data

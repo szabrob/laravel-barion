@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Enums;
+namespace Szabrob\LaravelBarion\Enums;
 
 enum RecurrenceType: string
 {

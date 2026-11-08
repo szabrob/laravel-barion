@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Requests;
+namespace Szabrob\LaravelBarion\Data\Requests;
 
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\AddressData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PayerAccountInformationData;
-use LaravelBarion\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
-use LaravelBarion\LaravelBarion\Enums\Currency;
-use LaravelBarion\LaravelBarion\Enums\FundingSource;
-use LaravelBarion\LaravelBarion\Enums\Locale;
-use LaravelBarion\LaravelBarion\Enums\PaymentType;
-use LaravelBarion\LaravelBarion\Enums\RecurrenceType;
-use LaravelBarion\LaravelBarion\Enums\ThreeDSecure\ChallengePreference;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\Hidden;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\AddressData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\PayerAccountInformationData;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
+use Szabrob\LaravelBarion\Enums\Currency;
+use Szabrob\LaravelBarion\Enums\FundingSource;
+use Szabrob\LaravelBarion\Enums\Locale;
+use Szabrob\LaravelBarion\Enums\PaymentType;
+use Szabrob\LaravelBarion\Enums\RecurrenceType;
+use Szabrob\LaravelBarion\Enums\ThreeDSecure\ChallengePreference;
 
 /**
  * Request body of the v2 Payment/Start endpoint.

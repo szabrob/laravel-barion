@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Tests;
+namespace Szabrob\LaravelBarion\Tests;
 
-use LaravelBarion\LaravelBarion\LaravelBarionServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spatie\LaravelData\LaravelDataServiceProvider;
+use Szabrob\LaravelBarion\LaravelBarionServiceProvider;
 
 abstract class TestCase extends Orchestra
 {

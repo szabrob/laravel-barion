@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Events;
+namespace Szabrob\LaravelBarion\Events;
 
-use LaravelBarion\LaravelBarion\Data\Responses\PaymentStateData;
+use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
 
 /**
  * Dispatched when the verified payment state is Succeeded. Callbacks may repeat (e.g. after a refund), so listeners must be idempotent.

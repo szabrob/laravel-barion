@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Requests;
+namespace Szabrob\LaravelBarion\Data\Requests;
 
 use Spatie\LaravelData\Attributes\Hidden;
 use Spatie\LaravelData\Attributes\MapOutputName;

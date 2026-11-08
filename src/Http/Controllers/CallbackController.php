@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Http\Controllers;
+namespace Szabrob\LaravelBarion\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
-use LaravelBarion\LaravelBarion\LaravelBarion;
+use Szabrob\LaravelBarion\Exceptions\BarionApiException;
+use Szabrob\LaravelBarion\LaravelBarion;
 
 final class CallbackController
 {

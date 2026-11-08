@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace LaravelBarion\LaravelBarion\Data\Requests;
+namespace Szabrob\LaravelBarion\Data\Requests;
 
-use LaravelBarion\LaravelBarion\Data\ItemData;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapOutputName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+use Szabrob\LaravelBarion\Data\ItemData;
 
 #[MapOutputName(StudlyCaseMapper::class)]
 final class PaymentTransactionData extends Data

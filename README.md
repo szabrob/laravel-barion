@@ -69,15 +69,15 @@ The package and your application talk through [spatie/laravel-data](https://spat
 ### Starting a payment
 
 ```php
-use LaravelBarion\LaravelBarion\Data\ItemData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
-use LaravelBarion\LaravelBarion\Enums\Currency;
-use LaravelBarion\LaravelBarion\Facades\LaravelBarion;
+use Szabrob\LaravelBarion\Data\ItemData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
+use Szabrob\LaravelBarion\Data\Requests\PaymentTransactionData;
+use Szabrob\LaravelBarion\Enums\Currency;
+use Szabrob\LaravelBarion\Facades\Barion;
 
 $attempt = $order->paymentAttempts()->create(); // a new attempt every time the customer clicks "Pay"
 
-$payment = LaravelBarion::startPayment(new PaymentRequestData(
+$payment = Barion::startPayment(new PaymentRequestData(
     paymentRequestId: "order-{$order->id}-{$attempt->id}",
     transactions: [
         new PaymentTransactionData(
@@ -124,7 +124,7 @@ Every callback makes an outgoing API call, so the route is rate limited per IP a
 
 ```php
 use Illuminate\Support\Facades\Event;
-use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
+use Szabrob\LaravelBarion\Events\PaymentSucceeded;
 
 Event::listen(function (PaymentSucceeded $event): void {
     $state = $event->paymentState;
@@ -141,12 +141,12 @@ Event::listen(function (PaymentSucceeded $event): void {
 
 Barion may send the callback more than once for the same payment, for example after a refund. Write your listeners so that running them twice is safe.
 
-Set the path and middleware in `laravel-barion.callback`. To handle callbacks in your own controller instead, set `callback.enabled` to `false` and call `LaravelBarion::handleCallback($paymentId)` there. It queries the state and dispatches the same events. On the redirect (return) page, show the state from `LaravelBarion::paymentState($paymentId)`. Don't trust query parameters there either.
+Set the path and middleware in `laravel-barion.callback`. To handle callbacks in your own controller instead, set `callback.enabled` to `false` and call `Barion::handleCallback($paymentId)` there. It queries the state and dispatches the same events. On the redirect (return) page, show the state from `Barion::paymentState($paymentId)`. Don't trust query parameters there either.
 
 ### Payment state
 
 ```php
-$state = LaravelBarion::paymentState($paymentId); // PaymentStateData
+$state = Barion::paymentState($paymentId); // PaymentStateData
 
 $state->status;           // PaymentStatus enum (isSuccessful(), isFailed(), isFinal())
 $state->total;            // float
@@ -159,10 +159,10 @@ $state->fundingInformation?->bankCard?->maskedPan;
 ### Refund
 
 ```php
-use LaravelBarion\LaravelBarion\Data\Requests\RefundRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\TransactionToRefundData;
+use Szabrob\LaravelBarion\Data\Requests\RefundRequestData;
+use Szabrob\LaravelBarion\Data\Requests\TransactionToRefundData;
 
-$refund = LaravelBarion::refund(new RefundRequestData(
+$refund = Barion::refund(new RefundRequestData(
     paymentId: $paymentId,
     transactionsToRefund: [
         new TransactionToRefundData(
@@ -180,22 +180,22 @@ The default idempotency key is derived from the request body. Use a unique `posT
 ### Reservation and delayed capture
 
 ```php
-use LaravelBarion\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\CaptureRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\FinishReservationRequestData;
-use LaravelBarion\LaravelBarion\Data\Requests\TransactionToFinishData;
+use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
+use Szabrob\LaravelBarion\Data\Requests\TransactionToFinishData;
 
 // PaymentType::Reservation
-LaravelBarion::finishReservation(new FinishReservationRequestData($paymentId, [
+Barion::finishReservation(new FinishReservationRequestData($paymentId, [
     new TransactionToFinishData(transactionId: $barionTransactionId, total: 1200),
 ]));
 
 // PaymentType::DelayedCapture
-LaravelBarion::capture(new CaptureRequestData($paymentId, [
+Barion::capture(new CaptureRequestData($paymentId, [
     new TransactionToFinishData(transactionId: $barionTransactionId, total: 1500),
 ]));
 
-LaravelBarion::cancelAuthorization(new CancelAuthorizationRequestData($paymentId));
+Barion::cancelAuthorization(new CancelAuthorizationRequestData($paymentId));
 ```
 
 All three return a `PaymentOperationResponseData` (`isSuccessful`, `status`, `transactions`).
