@@ -116,11 +116,29 @@ Barion calls the callback URL with only the `paymentId`, and the call is not sig
 
 Every callback makes an outgoing API call, so the route is rate limited per IP address: `callback.rate_limit` requests per minute, `120` by default, `null` disables it. Throttled requests get a `429`, and Barion retries them.
 
-| Event                  | When                                          |
-|------------------------|-----------------------------------------------|
-| `PaymentStateReceived` | Every callback                                |
-| `PaymentSucceeded`     | Verified status is `Succeeded`                |
-| `PaymentFailed`        | Verified status is `Canceled`, `Failed` or `Expired` |
+| Event                  | When                                                                 |
+|------------------------|----------------------------------------------------------------------|
+| `PaymentStateReceived` | Every callback                                                       |
+| `PaymentSucceeded`     | Verified status is `Succeeded`                                       |
+| `PaymentFailed`        | Verified status is `Canceled`, `Failed` or `Expired`                 |
+| `PaymentReserved`      | Verified status is `Reserved` (Reservation payment, call `finishReservation()`) |
+| `PaymentAuthorized`    | Verified status is `Authorized` (DelayedCapture payment, call `capture()` or `cancelAuthorization()`) |
+| `PaymentRefunded`      | The payment has succeeded refund transactions. It is dispatched in addition to the status event. |
+
+Every event has a `paymentState` property (`PaymentStateData`). A refund does not change the payment status: the payment stays `Succeeded`, its `total` drops, and a refund transaction appears. Use `$paymentState->refundTransactions()` (succeeded `Refund`, `RefundToBankCard` and `RefundToBankAccount` transactions) and `$paymentState->refundedAmount()`. Every later callback of the same payment dispatches `PaymentRefunded` again, so deduplicate refunds by their `transactionId`:
+
+```php
+use Szabrob\LaravelBarion\Events\PaymentRefunded;
+
+Event::listen(function (PaymentRefunded $event): void {
+    foreach ($event->paymentState->refundTransactions() as $refund) {
+        Refund::firstOrCreate(
+            ['barion_transaction_id' => $refund->transactionId],
+            ['amount' => $refund->total],
+        );
+    }
+});
+```
 
 ```php
 use Illuminate\Support\Facades\Event;

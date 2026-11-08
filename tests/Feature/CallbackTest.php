@@ -7,15 +7,28 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Szabrob\LaravelBarion\Data\Responses\TransactionDetailData;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Events\PaymentAuthorized;
 use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentRefunded;
+use Szabrob\LaravelBarion\Events\PaymentReserved;
 use Szabrob\LaravelBarion\Events\PaymentStateReceived;
 use Szabrob\LaravelBarion\Events\PaymentSucceeded;
 use Szabrob\LaravelBarion\Exceptions\BarionApiException;
 use Szabrob\LaravelBarion\LaravelBarion;
 
+const ALL_EVENTS = [
+    PaymentStateReceived::class,
+    PaymentSucceeded::class,
+    PaymentFailed::class,
+    PaymentReserved::class,
+    PaymentAuthorized::class,
+    PaymentRefunded::class,
+];
+
 beforeEach(function (): void {
-    Event::fake([PaymentStateReceived::class, PaymentSucceeded::class, PaymentFailed::class]);
+    Event::fake(ALL_EVENTS);
 });
 
 it('registers the callback route', function (): void {
@@ -140,4 +153,38 @@ it('can disable the callback rate limit', function (): void {
     foreach (range(1, 5) as $attempt) {
         $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
     }
+});
+
+it('dispatches the event of the verified status', function (string $status, array $expected): void {
+    Http::fake(['*' => Http::response(paymentStateResponse($status))]);
+
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+
+    foreach (ALL_EVENTS as $event) {
+        in_array($event, [PaymentStateReceived::class, ...$expected], true)
+            ? Event::assertDispatched($event, 1)
+            : Event::assertNotDispatched($event);
+    }
+})->with([
+    'prepared' => ['Prepared', []],
+    'started' => ['Started', []],
+    'reserved' => ['Reserved', [PaymentReserved::class]],
+    'authorized' => ['Authorized', [PaymentAuthorized::class]],
+    'succeeded' => ['Succeeded', [PaymentSucceeded::class]],
+    'partially succeeded' => ['PartiallySucceeded', []],
+    'canceled' => ['Canceled', [PaymentFailed::class]],
+    'failed' => ['Failed', [PaymentFailed::class]],
+    'expired' => ['Expired', [PaymentFailed::class]],
+]);
+
+it('dispatches the refunded event next to the status event', function (): void {
+    Http::fake(['*' => Http::response(refundedPaymentStateResponse())]);
+
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+
+    Event::assertDispatched(PaymentSucceeded::class, 1);
+    Event::assertDispatched(PaymentRefunded::class, function (PaymentRefunded $event): bool {
+        return $event->paymentState->refundedAmount() === 500.0
+            && array_map(fn (TransactionDetailData $transaction): ?string => $transaction->transactionId, $event->paymentState->refundTransactions()) === ['trx-refund-1'];
+    });
 });

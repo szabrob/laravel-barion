@@ -86,3 +86,24 @@ function paymentStateResponse(string $status = 'Succeeded'): array
         'SomeFieldAddedLater' => 'ignored',
     ];
 }
+
+/**
+ * A refunded payment as the v4 PaymentState API returns it: the payment stays
+ * Succeeded, its Total drops, and a RefundToBankCard transaction appears.
+ *
+ * @return array<string, mixed>
+ */
+function refundedPaymentStateResponse(): array
+{
+    $response = paymentStateResponse();
+    $response['Total'] = 1000.0;
+    $response['Transactions'] = [
+        $response['Transactions'][0],
+        ['TransactionId' => 'trx-fee', 'Total' => 15.0, 'Currency' => 'HUF', 'Status' => 'Deleted', 'TransactionType' => 'BarionBalanceProcessingFee', 'POSTransactionId' => null, 'RelatedId' => null],
+        ['TransactionId' => 'trx-refund-1', 'POSTransactionId' => 'refund-1', 'Total' => 500.0, 'Currency' => 'HUF', 'Status' => 'Succeeded', 'TransactionType' => 'RefundToBankCard', 'RelatedId' => 'trx-1', 'Items' => []],
+        ['TransactionId' => 'trx-refund-2', 'POSTransactionId' => 'refund-2', 'Total' => 200.0, 'Currency' => 'HUF', 'Status' => 'Rejected', 'TransactionType' => 'RefundToBankCard', 'RelatedId' => 'trx-1'],
+        ['TransactionId' => 'trx-storno', 'Total' => 100.0, 'Currency' => 'HUF', 'Status' => 'Succeeded', 'TransactionType' => 'StornoUnSuccessfulRefundToBankCard', 'RelatedId' => 'trx-1'],
+    ];
+
+    return $response;
+}

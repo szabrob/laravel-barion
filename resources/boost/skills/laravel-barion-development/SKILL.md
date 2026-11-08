@@ -35,7 +35,11 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 
 ### 3. React to the verified state
 
-- listen to `Szabrob\LaravelBarion\Events\PaymentSucceeded`, `PaymentFailed` or `PaymentStateReceived`. Each has `->paymentState` (`PaymentStateData`) from the v4 PaymentState API.
+- listen to the events in `Szabrob\LaravelBarion\Events`. Each has `->paymentState` (`PaymentStateData`) from the v4 PaymentState API:
+  - `PaymentStateReceived`: every callback
+  - `PaymentSucceeded` / `PaymentFailed`: final success, or canceled / failed / expired
+  - `PaymentReserved`: then call `finishReservation()`. `PaymentAuthorized`: then call `capture()` or `cancelAuthorization()`.
+  - `PaymentRefunded`: comes next to the status event. A refunded payment stays `Succeeded`. Read `refundTransactions()` and `refundedAmount()`, and deduplicate by refund `transactionId`.
 - look up the order by `paymentState->paymentId` and keep the listener idempotent, because callbacks repeat
 - on the return page, call `Barion::paymentState($paymentId)`. Don't trust query parameters.
 

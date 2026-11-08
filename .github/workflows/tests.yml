@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         php: [8.3, 8.4, 8.5]
@@ -47,9 +47,18 @@ jobs:
           coverage: none
 
       - name: Install dependencies
+        shell: bash
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-scripts
+          set -euo pipefail
+          composer require --dev "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          for attempt in 1 2 3; do
+            composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress --no-scripts && break
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "::warning::composer update failed (attempt ${attempt}/3), retrying in 15 seconds"
+            sleep 15
+          done
           composer run prepare
 
       - name: PHPStan

@@ -24,7 +24,11 @@ use Szabrob\LaravelBarion\Data\Responses\PaymentResponseData;
 use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
 use Szabrob\LaravelBarion\Data\Responses\RefundResponseData;
 use Szabrob\LaravelBarion\Enums\Environment;
+use Szabrob\LaravelBarion\Enums\PaymentStatus;
+use Szabrob\LaravelBarion\Events\PaymentAuthorized;
 use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentRefunded;
+use Szabrob\LaravelBarion\Events\PaymentReserved;
 use Szabrob\LaravelBarion\Events\PaymentStateReceived;
 use Szabrob\LaravelBarion\Events\PaymentSucceeded;
 use Szabrob\LaravelBarion\Exceptions\BarionApiException;
@@ -122,10 +126,20 @@ class LaravelBarion
 
         $this->events->dispatch(new PaymentStateReceived($state));
 
-        if ($state->status->isSuccessful()) {
-            $this->events->dispatch(new PaymentSucceeded($state));
-        } elseif ($state->status->isFailed()) {
-            $this->events->dispatch(new PaymentFailed($state));
+        $statusEvent = match (true) {
+            $state->status->isSuccessful() => new PaymentSucceeded($state),
+            $state->status->isFailed() => new PaymentFailed($state),
+            $state->status === PaymentStatus::Reserved => new PaymentReserved($state),
+            $state->status === PaymentStatus::Authorized => new PaymentAuthorized($state),
+            default => null,
+        };
+
+        if ($statusEvent !== null) {
+            $this->events->dispatch($statusEvent);
+        }
+
+        if ($state->refundTransactions() !== []) {
+            $this->events->dispatch(new PaymentRefunded($state));
         }
 
         return $state;

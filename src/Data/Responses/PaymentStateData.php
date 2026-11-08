@@ -17,6 +17,7 @@ use Szabrob\LaravelBarion\Enums\Currency;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Enums\PaymentType;
 use Szabrob\LaravelBarion\Enums\RecurrenceType;
+use Szabrob\LaravelBarion\Enums\TransactionStatus;
 
 /**
  * Response of the v4 Payment/{paymentId}/PaymentState endpoint: the only
@@ -26,6 +27,12 @@ use Szabrob\LaravelBarion\Enums\RecurrenceType;
 final class PaymentStateData extends Data
 {
     use IgnoresNullInput;
+
+    /**
+     * Transaction types of money sent back to the payer. The "Storno..."
+     * types mark failed refunds and are not included.
+     */
+    public const array REFUND_TRANSACTION_TYPES = ['Refund', 'RefundToBankCard', 'RefundToBankAccount'];
 
     /**
      * @param  array<int, string>  $allowedFundingSources
@@ -74,4 +81,26 @@ final class PaymentStateData extends Data
         public readonly ?string $traceId = null,
         public readonly ?string $paymentMethod = null,
     ) {}
+
+    /**
+     * The succeeded refund transactions of the payment.
+     *
+     * @return array<int, TransactionDetailData>
+     */
+    public function refundTransactions(): array
+    {
+        return array_values(array_filter(
+            $this->transactions,
+            fn (TransactionDetailData $transaction): bool => $transaction->status === TransactionStatus::Succeeded
+                && in_array($transaction->transactionType, self::REFUND_TRANSACTION_TYPES, true),
+        ));
+    }
+
+    public function refundedAmount(): float
+    {
+        return round(array_sum(array_map(
+            fn (TransactionDetailData $transaction): float => $transaction->total ?? 0.0,
+            $this->refundTransactions(),
+        )), 2);
+    }
 }
