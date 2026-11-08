@@ -1,0 +1,47 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LaravelBarion\LaravelBarion\Data\Responses;
+
+use Carbon\CarbonImmutable;
+use LaravelBarion\LaravelBarion\Data\Casts\BarionDateTimeCast;
+use LaravelBarion\LaravelBarion\Data\Casts\LenientEnumCast;
+use LaravelBarion\LaravelBarion\Data\ItemData;
+use LaravelBarion\LaravelBarion\Enums\Currency;
+use LaravelBarion\LaravelBarion\Enums\TransactionStatus;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
+use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Mappers\StudlyCaseMapper;
+
+#[MapInputName(StudlyCaseMapper::class)]
+final class TransactionDetailData extends Data
+{
+    /**
+     * @param  array<int, ItemData>  $items
+     */
+    public function __construct(
+        public readonly ?string $transactionId = null,
+        #[MapInputName('POSTransactionId')]
+        public readonly ?string $posTransactionId = null,
+        #[WithCast(BarionDateTimeCast::class)]
+        public readonly ?CarbonImmutable $transactionTime = null,
+        public readonly ?float $total = null,
+        #[WithCast(LenientEnumCast::class, Currency::class)]
+        public readonly ?Currency $currency = null,
+        public readonly ?UserData $payer = null,
+        public readonly ?UserData $payee = null,
+        public readonly ?string $comment = null,
+        #[WithCast(LenientEnumCast::class, TransactionStatus::class)]
+        public readonly ?TransactionStatus $status = null,
+        public readonly ?string $transactionType = null,
+        #[DataCollectionOf(ItemData::class)]
+        public readonly array $items = [],
+        public readonly ?string $relatedId = null,
+        #[MapInputName('POSId')]
+        public readonly ?string $posId = null,
+        public readonly ?string $paymentId = null,
+    ) {}
+}

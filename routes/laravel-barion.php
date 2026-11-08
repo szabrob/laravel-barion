@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
-// use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route;
+use LaravelBarion\LaravelBarion\Http\Controllers\CallbackController;
+use LaravelBarion\LaravelBarion\LaravelBarion;
 
-// Route::get('laravel-barion', fn () => 'LaravelBarion placeholder route.')->name('laravel-barion.placeholder');
+if (config('laravel-barion.callback.enabled')) {
+    $path = config('laravel-barion.callback.path');
+    $middleware = config('laravel-barion.callback.middleware');
+
+    Route::match(['GET', 'POST'], is_string($path) ? $path : 'barion/callback', CallbackController::class)
+        ->middleware(is_array($middleware) ? $middleware : [])
+        ->name(LaravelBarion::CALLBACK_ROUTE);
+}

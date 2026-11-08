@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LaravelBarion\LaravelBarion;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class LaravelBarionServiceProvider extends ServiceProvider
@@ -26,6 +27,8 @@ class LaravelBarionServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/laravel-barion.php');
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'laravel-barion');
+
+        Blade::anonymousComponentPath(__DIR__.'/../resources/views/components', 'laravel-barion');
 
         if (! $this->app->runningInConsole()) {
             return;

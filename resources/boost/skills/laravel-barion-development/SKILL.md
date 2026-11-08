@@ -1,7 +1,9 @@
 ---
 name: laravel-barion-development
 description: >
-  Configure and apply the Laravel Barion package in Laravel applications.
+  Integrate Barion Smart Gateway payments into a Laravel application with the szabrob/laravel-barion
+  package: starting payments, verified callbacks and events, payment state, refunds, reservations,
+  delayed capture and the Barion Pixel, all through spatie/laravel-data DTOs.
 license: MIT
 metadata:
   author: Szabó Róbert
@@ -9,33 +11,69 @@ metadata:
 
 # Laravel Barion
 
-Use this skill when a Laravel application needs to integrate the Laravel Barion package.
+Use this skill when a Laravel application takes payments through Barion with `szabrob/laravel-barion`.
 
 ## Primary Goal
 
-- apply the `szabrob/laravel-barion` package's public API in the smallest correct way
+- start, verify and settle Barion payments through the package's DTO-based API, and let order state change only from the verified PaymentState result
 
 ## Workflow
 
-### 1. Inspect the Laravel app context
+### 1. Install and configure
 
-- confirm the app is a Laravel project
-- inspect the target code paths where the package should be applied
+- `composer require szabrob/laravel-barion`, optionally `php artisan vendor:publish --tag="laravel-barion-config"`
+- set `BARION_ENVIRONMENT` (`test` or `production`), and the POS key and payee of that environment: `BARION_TEST_POS_KEY` / `BARION_TEST_PAYEE` or `BARION_POS_KEY` / `BARION_PAYEE`
+- the test shop and the live shop have separate POS keys. Never copy one into the other's slot.
 
-### 2. Apply the package's public API
+### 2. Start the payment
 
-Document how to integrate Laravel Barion here, replacing this placeholder with the integration steps for your package.
+- build `PaymentRequestData` with `PaymentTransactionData` and `ItemData` (namespace `LaravelBarion\LaravelBarion\Data\...`)
+- call `LaravelBarion::startPayment($request)`, store `$response->paymentId` on the order, and redirect to `$response->gatewayUrl`
+- `payee` defaults to the configured payee, and `callbackUrl` defaults to the package route `laravel-barion.callback`
+
+### 3. React to the verified state
+
+- listen to `LaravelBarion\LaravelBarion\Events\PaymentSucceeded`, `PaymentFailed` or `PaymentStateReceived`. Each has `->paymentState` (`PaymentStateData`) from the v4 PaymentState API.
+- look up the order by `paymentState->paymentId` and keep the listener idempotent, because callbacks repeat
+- on the return page, call `LaravelBarion::paymentState($paymentId)`. Don't trust query parameters.
+
+### 4. Settle when needed
+
+- `LaravelBarion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund
+- `LaravelBarion::finishReservation(FinishReservationRequestData)` for `PaymentType::Reservation`
+- `LaravelBarion::capture(CaptureRequestData)` and `cancelAuthorization(CancelAuthorizationRequestData)` for `PaymentType::DelayedCapture`
 
 ## Rules, References, and Templates
 
-Read before executing:
-
-- no additional resource files for this skill
+- auth uses the `x-pos-key` header, set by the package. Never add `POSKey` to request bodies.
+- idempotency keys are sent automatically and derived from the request. Pass `idempotencyKey:` only when you need your own key.
+- errors: `BarionApiException` (`status`, `errors`), `BarionConnectionException`, and `BarionException` for configuration problems
+- Barion Pixel: `<x-laravel-barion::pixel />` in the layout `<head>`. It needs `BARION_PIXEL_ID` and accepts an optional `:nonce`.
+- tests: fake `api.test.barion.com/*` with `Http::fake()` and post to `/barion/callback`
+- full docs: the package `README.md`
 
 ## Examples
 
-- describe a representative integration scenario for Laravel Barion
+```php
+$payment = LaravelBarion::startPayment(new PaymentRequestData(
+    paymentRequestId: "order-{$order->id}",
+    transactions: [new PaymentTransactionData(
+        posTransactionId: "order-{$order->id}-1",
+        total: $order->total,
+        items: $order->lines->map(fn ($line) => new ItemData(
+            name: $line->name, description: $line->name, quantity: $line->qty,
+            unit: 'pcs', unitPrice: $line->price, itemTotal: $line->total, sku: $line->sku,
+        ))->all(),
+    )],
+    redirectUrl: route('checkout.barion.return', $order),
+));
+
+return redirect()->away($payment->gatewayUrl);
+```
 
 ## Anti-patterns
 
-- do not document package internals here; keep the skill focused on adoption in Laravel apps
+- marking an order paid from the callback request or the redirect query string instead of `PaymentStateData`
+- calling the deprecated v2 `GetPaymentState` endpoint or building Barion HTTP calls by hand
+- reusing the same `posTransactionId` for different refunds
+- assuming a payment event arrives exactly once
