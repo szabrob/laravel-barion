@@ -1,0 +1,282 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Workbench\App\Http\Controllers;
+
+use Closure;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use LaravelBarion\LaravelBarion\Data\ItemData;
+use LaravelBarion\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\CaptureRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\FinishReservationRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\PaymentRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\PaymentTransactionData;
+use LaravelBarion\LaravelBarion\Data\Requests\RefundRequestData;
+use LaravelBarion\LaravelBarion\Data\Requests\TransactionToFinishData;
+use LaravelBarion\LaravelBarion\Data\Requests\TransactionToRefundData;
+use LaravelBarion\LaravelBarion\Enums\Currency;
+use LaravelBarion\LaravelBarion\Enums\FundingSource;
+use LaravelBarion\LaravelBarion\Enums\Locale;
+use LaravelBarion\LaravelBarion\Enums\PaymentType;
+use LaravelBarion\LaravelBarion\Exceptions\BarionApiException;
+use LaravelBarion\LaravelBarion\Exceptions\BarionException;
+use LaravelBarion\LaravelBarion\LaravelBarion;
+use Spatie\LaravelData\Data;
+use Workbench\App\Support\BarionLog;
+
+final class BarionController
+{
+    public function __construct(private readonly LaravelBarion $barion) {}
+
+    public function index(): View
+    {
+        return view('barion.index', [
+            'status' => $this->configStatus(),
+            'payments' => BarionLog::payments(),
+            'events' => BarionLog::events(),
+        ]);
+    }
+
+    public function start(Request $request): RedirectResponse
+    {
+        $input = $request->validate([
+            'item_name' => ['required', 'string', 'max:250'],
+            'quantity' => ['required', 'numeric', 'min:0.01'],
+            'unit_price' => ['required', 'numeric', 'min:0.01'],
+            'currency' => ['required', Rule::enum(Currency::class)],
+            'locale' => ['required', Rule::enum(Locale::class)],
+            'payment_type' => ['required', Rule::enum(PaymentType::class)],
+            'funding_sources' => ['required', 'array', 'min:1'],
+            'funding_sources.*' => [Rule::enum(FundingSource::class)],
+            'guest_checkout' => ['boolean'],
+            'period' => ['nullable', 'string', 'max:20'],
+            'payer_hint' => ['nullable', 'email'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $requestId = 'WB-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+        $paymentType = PaymentType::from($input['payment_type']);
+        $total = round((float) $input['quantity'] * (float) $input['unit_price'], 2);
+
+        $paymentRequest = new PaymentRequestData(
+            paymentRequestId: $requestId,
+            transactions: [
+                new PaymentTransactionData(
+                    posTransactionId: "{$requestId}-T1",
+                    total: $total,
+                    items: [
+                        new ItemData(
+                            name: $input['item_name'],
+                            description: $input['item_name'],
+                            quantity: (float) $input['quantity'],
+                            unit: 'db',
+                            unitPrice: (float) $input['unit_price'],
+                            itemTotal: $total,
+                            sku: 'WB-ITEM',
+                        ),
+                    ],
+                    comment: 'Workbench test payment',
+                ),
+            ],
+            currency: Currency::from($input['currency']),
+            locale: Locale::from($input['locale']),
+            paymentType: $paymentType,
+            guestCheckOut: $request->boolean('guest_checkout'),
+            fundingSources: array_map(FundingSource::from(...), $input['funding_sources']),
+            redirectUrl: route('workbench.barion.return'),
+            orderNumber: $requestId,
+            payerHint: $input['payer_hint'] ?? null,
+            reservationPeriod: $paymentType === PaymentType::Reservation ? ($input['period'] ?: '1.00:00:00') : null,
+            delayedCapturePeriod: $paymentType === PaymentType::DelayedCapture ? ($input['period'] ?: '1.00:00:00') : null,
+            idempotencyKey: $input['idempotency_key'] ?? null,
+        );
+
+        return $this->attempt(function () use ($paymentRequest, $requestId, $paymentType, $total, $input): RedirectResponse {
+            $response = $this->barion->startPayment($paymentRequest);
+
+            BarionLog::addPayment([
+                'paymentId' => $response->paymentId,
+                'paymentRequestId' => $requestId,
+                'type' => $paymentType->value,
+                'total' => $total,
+                'currency' => $input['currency'],
+                'environment' => $this->barion->environment()->value,
+                'gatewayUrl' => $response->gatewayUrl,
+            ]);
+
+            return redirect()->away($response->gatewayUrl);
+        });
+    }
+
+    /**
+     * Barion redirects the customer here with ?paymentId=... after the payment.
+     */
+    public function return(Request $request): RedirectResponse
+    {
+        $paymentId = $request->query('paymentId');
+
+        if (! is_string($paymentId) || $paymentId === '') {
+            return redirect()->route('workbench.barion.index')->with('error', 'A visszairányítás nem tartalmazott paymentId-t.');
+        }
+
+        return redirect()->route('workbench.barion.show', $paymentId)
+            ->with('info', 'Visszatérés a Barion fizetőoldalról. Az alábbi állapot a PaymentState API-ból jön, nem a redirect paramétereiből.');
+    }
+
+    public function show(string $paymentId): View
+    {
+        $state = null;
+        $error = null;
+
+        try {
+            $state = $this->barion->paymentState($paymentId);
+        } catch (BarionException $exception) {
+            $error = $this->describe($exception);
+        }
+
+        return view('barion.show', [
+            'paymentId' => $paymentId,
+            'state' => $state,
+            'stateError' => $error,
+            'events' => BarionLog::events($paymentId),
+            'gatewayUrl' => $this->barion->gatewayUrl($paymentId),
+        ]);
+    }
+
+    public function callback(string $paymentId): RedirectResponse
+    {
+        return $this->attempt(function () use ($paymentId): RedirectResponse {
+            $state = $this->barion->handleCallback($paymentId);
+
+            return $this->done($paymentId, 'Callback szimuláció (handleCallback)', $state);
+        });
+    }
+
+    public function refund(Request $request, string $paymentId): RedirectResponse
+    {
+        $input = $request->validate([
+            'transaction_id' => ['required', 'string'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'comment' => ['nullable', 'string', 'max:640'],
+        ]);
+
+        return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'Refund válasz', $this->barion->refund(
+            new RefundRequestData($paymentId, [
+                new TransactionToRefundData(
+                    transactionId: $input['transaction_id'],
+                    posTransactionId: 'WB-REFUND-'.Str::upper(Str::random(8)),
+                    amountToRefund: (float) $input['amount'],
+                    comment: $input['comment'] ?? null,
+                ),
+            ]),
+        )));
+    }
+
+    public function finish(Request $request, string $paymentId): RedirectResponse
+    {
+        $transaction = $this->transactionToFinish($request);
+
+        return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'FinishReservation válasz', $this->barion->finishReservation(
+            new FinishReservationRequestData($paymentId, [$transaction]),
+        )));
+    }
+
+    public function capture(Request $request, string $paymentId): RedirectResponse
+    {
+        $transaction = $this->transactionToFinish($request);
+
+        return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'Capture válasz', $this->barion->capture(
+            new CaptureRequestData($paymentId, [$transaction]),
+        )));
+    }
+
+    public function cancel(string $paymentId): RedirectResponse
+    {
+        return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'CancelAuthorization válasz', $this->barion->cancelAuthorization(
+            new CancelAuthorizationRequestData($paymentId),
+        )));
+    }
+
+    public function lookup(Request $request): RedirectResponse
+    {
+        $paymentId = $request->validate(['payment_id' => ['required', 'string', 'max:64']])['payment_id'];
+
+        return redirect()->route('workbench.barion.show', trim($paymentId));
+    }
+
+    public function clear(): RedirectResponse
+    {
+        BarionLog::clear();
+
+        return redirect()->route('workbench.barion.index')->with('info', 'A workbench napló törölve.');
+    }
+
+    private function transactionToFinish(Request $request): TransactionToFinishData
+    {
+        $input = $request->validate([
+            'transaction_id' => ['required', 'string'],
+            'total' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        return new TransactionToFinishData(transactionId: $input['transaction_id'], total: (float) $input['total']);
+    }
+
+    private function done(string $paymentId, string $title, Data $data): RedirectResponse
+    {
+        return redirect()->route('workbench.barion.show', $paymentId)
+            ->with('result', ['title' => $title, 'data' => $data->toArray()]);
+    }
+
+    /**
+     * @param  Closure(): RedirectResponse  $callback
+     */
+    private function attempt(Closure $callback): RedirectResponse
+    {
+        try {
+            return $callback();
+        } catch (BarionException $exception) {
+            return back()->withInput()->with('error', $this->describe($exception));
+        }
+    }
+
+    private function describe(BarionException $exception): string
+    {
+        $message = class_basename($exception).': '.$exception->getMessage();
+
+        if ($exception instanceof BarionApiException && $exception->body !== []) {
+            $message .= "\n\n".json_encode($exception->body, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+
+        return $message;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function configStatus(): array
+    {
+        try {
+            $environment = $this->barion->environment();
+        } catch (BarionException $exception) {
+            return ['error' => $exception->getMessage()];
+        }
+
+        $posKey = config("laravel-barion.{$environment->value}.pos_key");
+
+        return [
+            'environment' => $environment->value,
+            'apiUrl' => $environment->apiUrl(),
+            'gatewayUrl' => $environment->gatewayUrl(),
+            'posKey' => is_string($posKey) && $posKey !== '' ? Str::mask($posKey, '*', 4, -4) : null,
+            'payee' => config("laravel-barion.{$environment->value}.payee"),
+            'redirectUrl' => route('workbench.barion.return'),
+            'callbackUrl' => config('laravel-barion.callback.enabled') ? route(LaravelBarion::CALLBACK_ROUTE) : null,
+            'pixelId' => config('laravel-barion.pixel.id'),
+        ];
+    }
+}

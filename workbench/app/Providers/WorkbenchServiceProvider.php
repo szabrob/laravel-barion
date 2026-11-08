@@ -2,7 +2,13 @@
 
 namespace Workbench\App\Providers;
 
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use LaravelBarion\LaravelBarion\Events\PaymentFailed;
+use LaravelBarion\LaravelBarion\Events\PaymentStateReceived;
+use LaravelBarion\LaravelBarion\Events\PaymentSucceeded;
+use Workbench\App\Support\BarionLog;
 
 class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -19,6 +25,28 @@ class WorkbenchServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Generated URLs (RedirectUrl, CallbackUrl) always use APP_URL, so a
+        // public tunnel URL (ngrok, Expose, Cloudflare Tunnel) works for callbacks.
+        $appUrl = config('app.url');
+
+        if (is_string($appUrl) && $appUrl !== '') {
+            URL::forceRootUrl($appUrl);
+
+            if (str_starts_with($appUrl, 'https://')) {
+                URL::forceScheme('https');
+            }
+        }
+
+        foreach ([PaymentStateReceived::class, PaymentSucceeded::class, PaymentFailed::class] as $event) {
+            Event::listen($event, function (PaymentStateReceived|PaymentSucceeded|PaymentFailed $event): void {
+                BarionLog::addEvent([
+                    'event' => class_basename($event),
+                    'paymentId' => $event->paymentState->paymentId,
+                    'status' => $event->paymentState->status->value,
+                    'total' => $event->paymentState->total,
+                    'currency' => $event->paymentState->currency?->value,
+                ]);
+            });
+        }
     }
 }

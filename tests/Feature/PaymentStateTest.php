@@ -52,6 +52,9 @@ it('maps the payment state to typed DTOs', function (): void {
     expect($transaction->posTransactionId)->toBe('order-1001-t1')
         ->and($transaction->status)->toBe(TransactionStatus::Succeeded)
         ->and($transaction->payer?->email)->toBe('payer@example.com')
+        ->and($transaction->payer?->name?->loginName)->toBe('payer@example.com')
+        ->and($transaction->payer?->name?->displayName())->toBe('Teszt Elek')
+        ->and($transaction->payee?->name?->displayName())->toBe('Test Shop Kft.')
         ->and($transaction->transactionType)->toBe('CardPayment')
         ->and($transaction->items[0]->sku)->toBe('TS-BLK-M');
 });

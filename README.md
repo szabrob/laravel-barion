@@ -229,6 +229,16 @@ Http::fake([
 $this->post('/barion/callback', ['paymentId' => $paymentId])->assertOk();
 ```
 
+## Workbench (manual testing)
+
+The repository has a workbench test UI for trying the package against the real Barion test API:
+
+1. Fill in the Barion variables in `workbench/.env` (copied from `workbench/.env.example`, git-ignored).
+2. Run `composer serve` and open `http://localhost:8000`.
+3. Start a payment, pay on the Barion test gateway, then come back to the payment page. There you can query the PaymentState, refund, finish a reservation, capture or cancel an authorization.
+
+Barion cannot reach `localhost`. For real callbacks, expose the server through a tunnel (for example `ngrok http 8000`) and set `APP_URL` to the public URL. The workbench generates the RedirectUrl and CallbackUrl from `APP_URL`. Without a tunnel, use the **Callback szimuláció** button. It runs the same `handleCallback()` flow.
+
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.

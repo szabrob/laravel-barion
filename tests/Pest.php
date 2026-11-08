@@ -59,8 +59,14 @@ function paymentStateResponse(string $status = 'Succeeded'): array
             'TransactionTime' => '2026-11-08T10:01:30Z',
             'Total' => 1500.0,
             'Currency' => 'HUF',
-            'Payer' => ['Name' => 'Test Payer', 'Email' => 'payer@example.com'],
-            'Payee' => ['Name' => 'Test shop', 'Email' => 'test-payee@example.com'],
+            'Payer' => [
+                'Name' => ['LoginName' => 'payer@example.com', 'FirstName' => 'Teszt', 'LastName' => 'Elek', 'OrganizationName' => null],
+                'Email' => 'payer@example.com',
+            ],
+            'Payee' => [
+                'Name' => ['LoginName' => 'test-payee@example.com', 'FirstName' => null, 'LastName' => null, 'OrganizationName' => 'Test Shop Kft.'],
+                'Email' => 'test-payee@example.com',
+            ],
             'Status' => 'Succeeded',
             'TransactionType' => 'CardPayment',
             'Items' => [['Name' => 'T-shirt', 'Description' => 'Black, M', 'Quantity' => 1, 'Unit' => 'pcs', 'UnitPrice' => 1500, 'ItemTotal' => 1500, 'SKU' => 'TS-BLK-M']],
