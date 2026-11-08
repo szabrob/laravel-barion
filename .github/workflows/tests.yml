@@ -61,7 +61,11 @@ jobs:
           done
           composer run prepare
 
+      # Larastan boots Laravel in every parallel PHPStan worker, and on Windows
+      # the workers race on writing bootstrap/cache/services.php ("Access is
+      # denied"). Static analysis does not depend on the OS: Ubuntu covers it.
       - name: PHPStan
+        if: runner.os != 'Windows'
         run: composer analyse
 
       - name: Linter
