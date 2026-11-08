@@ -2,7 +2,7 @@
 
 ## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.1.0...HEAD)
 
-## [v0.1.0](https://github.com/szabrob/laravel-barion/compare/v0.1.0...v0.1.0) - 2026-11-08
+## [v0.1.0](https://github.com/szabrob/laravel-barion/releases/tag/v0.1.0) - 2026-11-08
 
 ### Added
 
