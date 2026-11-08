@@ -1,6 +1,21 @@
 # Release Notes
 
-## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.1.0...HEAD)
+## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.2.0...HEAD)
+
+## [v0.2.0](https://github.com/szabrob/laravel-barion/compare/v0.1.0...v0.2.0) - 2026-11-08
+
+### Breaking Changes
+
+- The namespace changed from `LaravelBarion\LaravelBarion` to `Szabrob\LaravelBarion`, and the facade from `LaravelBarion` to `Barion`. See the [upgrade guide](https://github.com/szabrob/laravel-barion/blob/v0.2.0/UPGRADE.md).
+
+### Added
+
+- `PaymentReserved`, `PaymentAuthorized` and `PaymentRefunded` callback events
+- `PaymentStateData::refundTransactions()` and `refundedAmount()`
+
+### Maintenance
+
+- CI: no fail-fast, retried dependency installation, bash shell on every OS
 
 ## [v0.1.0](https://github.com/szabrob/laravel-barion/releases/tag/v0.1.0) - 2026-11-08
 
