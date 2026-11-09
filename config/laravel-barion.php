@@ -52,7 +52,9 @@ return [
     |
     | Every callback triggers an outgoing PaymentState request, so the route
     | is rate limited per IP address and paymentId ("rate_limit" requests per
-    | minute for one payment, null disables it). Throttled callbacks get a 429 and Barion retries them.
+    | minute for one payment) and per IP address ("rate_limit_per_ip" requests
+    | per minute in total, against random paymentIds). null disables a limit.
+    | Throttled callbacks get a 429 and Barion retries them.
     |
     */
 
@@ -61,6 +63,7 @@ return [
         'path' => 'barion/callback',
         'middleware' => [],
         'rate_limit' => 120,
+        'rate_limit_per_ip' => 1000,
     ],
 
     /*

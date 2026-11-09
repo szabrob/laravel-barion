@@ -160,9 +160,32 @@ it('does not throttle callbacks of other payments from the same IP address', fun
     Http::assertSentCount(3);
 });
 
+it('rate limits the callback route per IP address across payments', function (): void {
+    Http::fake(['*' => Http::response(paymentStateResponse())]);
+    config()->set('laravel-barion.callback.rate_limit_per_ip', 2);
+
+    $this->post('/barion/callback', ['paymentId' => 'aaaaaaaabbbbccccddddeeeeeeeeee01'])->assertOk();
+    $this->post('/barion/callback', ['paymentId' => 'aaaaaaaabbbbccccddddeeeeeeeeee02'])->assertOk();
+    $this->post('/barion/callback', ['paymentId' => 'aaaaaaaabbbbccccddddeeeeeeeeee03'])->assertTooManyRequests();
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID], ['REMOTE_ADDR' => '10.0.0.2'])->assertOk();
+
+    Http::assertSentCount(3);
+});
+
+it('can disable the per IP callback rate limit only', function (): void {
+    Http::fake(['*' => Http::response(paymentStateResponse())]);
+    config()->set('laravel-barion.callback.rate_limit', 1);
+    config()->set('laravel-barion.callback.rate_limit_per_ip', null);
+
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();
+    $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertTooManyRequests();
+    $this->post('/barion/callback', ['paymentId' => 'aaaaaaaabbbbccccddddeeeeeeeeeeee'])->assertOk();
+});
+
 it('can disable the callback rate limit', function (): void {
     Http::fake(['*' => Http::response(paymentStateResponse())]);
     config()->set('laravel-barion.callback.rate_limit', null);
+    config()->set('laravel-barion.callback.rate_limit_per_ip', null);
 
     foreach (range(1, 5) as $attempt) {
         $this->post('/barion/callback', ['paymentId' => PAYMENT_ID])->assertOk();

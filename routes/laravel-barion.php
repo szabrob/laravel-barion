@@ -11,7 +11,7 @@ if (config('laravel-barion.callback.enabled')) {
     $middleware = config('laravel-barion.callback.middleware');
     $middleware = is_array($middleware) ? $middleware : [];
 
-    if (config('laravel-barion.callback.rate_limit') !== null) {
+    if (config('laravel-barion.callback.rate_limit') !== null || config('laravel-barion.callback.rate_limit_per_ip') !== null) {
         $middleware[] = 'throttle:'.LaravelBarion::CALLBACK_RATE_LIMITER;
     }
 

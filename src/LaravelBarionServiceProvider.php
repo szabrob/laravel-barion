@@ -27,20 +27,29 @@ class LaravelBarionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for(LaravelBarion::CALLBACK_RATE_LIMITER, function (Request $request): Limit {
+        RateLimiter::for(LaravelBarion::CALLBACK_RATE_LIMITER, function (Request $request): Limit|array {
             $perMinute = config('laravel-barion.callback.rate_limit');
+            $perIp = config('laravel-barion.callback.rate_limit_per_ip');
+            $limits = [];
 
-            if (! is_numeric($perMinute)) {
-                return Limit::none();
+            if (is_numeric($perMinute)) {
+                // Keyed by IP and paymentId: Barion sends every callback from a few
+                // IPs, so a per-IP key alone would throttle busy shops. Dashes and
+                // case are normalized, so the variants of one id share a counter.
+                $paymentId = $request->input('paymentId', $request->input('PaymentId'));
+                $paymentId = is_string($paymentId) ? strtolower(str_replace('-', '', $paymentId)) : '';
+
+                $limits[] = Limit::perMinute((int) $perMinute)->by('payment|'.$request->ip().'|'.$paymentId);
             }
 
-            // Keyed by IP and paymentId: Barion sends every callback from a few
-            // IPs, so a per-IP key alone would throttle busy shops. Dashes and
-            // case are normalized, so the variants of one id share a counter.
-            $paymentId = $request->input('paymentId', $request->input('PaymentId'));
-            $paymentId = is_string($paymentId) ? strtolower(str_replace('-', '', $paymentId)) : '';
+            if (is_numeric($perIp)) {
+                // Random well-formed paymentIds would each get a fresh bucket above
+                // and each trigger a PaymentState call, so one IP is also capped in
+                // total, high enough not to throttle Barion's own callbacks.
+                $limits[] = Limit::perMinute((int) $perIp)->by('ip|'.$request->ip());
+            }
 
-            return Limit::perMinute((int) $perMinute)->by($request->ip().'|'.$paymentId);
+            return $limits === [] ? Limit::none() : $limits;
         });
 
         $this->loadRoutesFrom(__DIR__.'/../routes/laravel-barion.php');
