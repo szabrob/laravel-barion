@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.3.0...HEAD)
+## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.3.1...HEAD)
+
+## [v0.3.1](https://github.com/szabrob/laravel-barion/compare/v0.3.0...v0.3.1) - 2026-11-09
+
+### Added
+
+- Per-IP callback rate limit (`callback.rate_limit_per_ip`, 1000 per minute by default) next to the per-IP-and-`paymentId` limit, so random well-formed payment ids can no longer trigger unlimited PaymentState calls.
 
 ## [v0.3.0](https://github.com/szabrob/laravel-barion/compare/v0.2.0...v0.3.0) - 2026-11-09
 
