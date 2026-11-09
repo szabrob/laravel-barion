@@ -62,7 +62,7 @@
                         <option @selected(old('recurrence_type') === $case->value)>{{ $case->value }}</option>
                     @endforeach
                 </select>
-                <p class="hint" style="margin-top:4px">A workbench generál egy recurrenceId-t. Sikeres fizetés után a fizetés oldalán ütemezett terhelést állíthatsz be erre a kártyára. RecurringPayment esetén 1 napos recurringFrequency-t és 1 éves recurringExpiry-t küld.</p>
+                <p class="hint" style="margin-top:4px">A workbench generál egy recurrenceId-t. Sikeres fizetés után a fizetés oldalán ütemezett terhelést állíthatsz be erre a kártyára. RecurringPayment esetén 1 napos recurringFrequency-t és 1 éves recurringExpiry-t küld. A Barion szabályai szerint ilyenkor két terhelés között legalább 1 napnak kell eltelnie, és egy terhelés nem lehet több az első fizetésnél. Ezt a Barion nem ellenőrzi, a kártyakibocsátó bank utasíthatja el. OneClickPayment terhelés után a fizetés oldalán fut a 3DS azonosítás és a Complete.</p>
                 <input type="hidden" name="guest_checkout" value="0">
                 <label class="check"><input type="checkbox" name="guest_checkout" value="1" @checked(old('guest_checkout', '1') === '1')> Vendég fizetés engedélyezése</label>
                 <button>Fizetés indítása → Barion</button>

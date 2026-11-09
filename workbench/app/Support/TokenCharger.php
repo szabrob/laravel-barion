@@ -99,6 +99,9 @@ final class TokenCharger
             'currency' => $currency->value,
             'environment' => $this->barion->environment()->value,
             'gatewayUrl' => $response->gatewayUrl,
+            'recurrenceType' => $schedule['recurrenceType'],
+            // Set with RecurrenceResult ThreeDSAuthenticationRequired: input of the off-site 3DS authentication.
+            'threeDSAuthClientData' => $response->threeDSAuthClientData,
         ]);
 
         $schedule['lastResult'] = ($response->recurrenceResult ?? RecurrenceResult::None)->value.' / '.$response->status->value;

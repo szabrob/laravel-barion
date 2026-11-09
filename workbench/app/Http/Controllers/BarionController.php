@@ -29,6 +29,7 @@ use Szabrob\LaravelBarion\Enums\PaymentType;
 use Szabrob\LaravelBarion\Enums\RecurrenceType;
 use Szabrob\LaravelBarion\Exceptions\BarionApiException;
 use Szabrob\LaravelBarion\Exceptions\BarionException;
+use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
 use Szabrob\LaravelBarion\LaravelBarion;
 use Workbench\App\Support\BarionLog;
 use Workbench\App\Support\TokenCharger;
@@ -163,6 +164,8 @@ final class BarionController
             'stateError' => $error,
             'events' => BarionLog::events($paymentId),
             'gatewayUrl' => $this->barion->gatewayUrl($paymentId),
+            // barion.offsitegw.min.js/css live on the gateway host of the environment.
+            'offsiteGwBase' => $this->offsiteGwBase(),
             'payment' => BarionLog::payment($paymentId),
             'schedules' => array_values(array_filter(BarionLog::schedules(), fn (array $schedule): bool => $schedule['sourcePaymentId'] === $paymentId)),
         ]);
@@ -314,6 +317,17 @@ final class BarionController
         return redirect()->route('workbench.barion.index')->with('info', 'A workbench napló törölve.');
     }
 
+    private function offsiteGwBase(): ?string
+    {
+        try {
+            $gateway = parse_url($this->barion->environment()->gatewayUrl());
+        } catch (BarionException) {
+            return null;
+        }
+
+        return is_array($gateway) && isset($gateway['scheme'], $gateway['host']) ? "{$gateway['scheme']}://{$gateway['host']}" : null;
+    }
+
     private function transactionToFinish(Request $request): TransactionToFinishData
     {
         $input = $request->validate([
@@ -346,7 +360,7 @@ final class BarionController
     {
         $message = class_basename($exception).': '.$exception->getMessage();
 
-        if ($exception instanceof BarionApiException && $exception->body !== []) {
+        if (($exception instanceof BarionApiException || $exception instanceof BarionResponseException) && $exception->body !== []) {
             $message .= "\n\n".json_encode($exception->body, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
 

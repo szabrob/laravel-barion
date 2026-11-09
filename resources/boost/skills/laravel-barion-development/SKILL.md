@@ -46,21 +46,25 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 
 ### Token payments (saved cards)
 
-- `RecurrenceType`: `OneClickPayment` (the customer pays with the saved card, may need 3D Secure), `MerchantInitiatedPayment` (the shop charges a varying amount or time without the customer), `RecurringPayment` (fixed schedule subscription). Use the same type for the first payment and every later charge.
-- first payment: `initiateRecurrence: true`, a `recurrenceId` generated and stored by the shop, the `recurrenceType`, and for `RecurringPayment` `purchaseInformation` with `recurringExpiry` and `recurringFrequency` (days). The customer pays on the gateway.
-- after it succeeds, store `$paymentState->traceId`. `$paymentState->recurrenceId` is only filled when Barion sends it, so keep your own copy.
-- later charges (e.g. from a scheduled job): `startPayment()` with `initiateRecurrence: false`, the stored `recurrenceId`, `recurrenceType` and `traceId`, and a new `paymentRequestId` per billing period. There is no redirect. Check `$response->recurrenceResult`: `Successful`, `Failed`, `NotFound` (the token is gone) or `ThreeDSAuthenticationRequired` (then `completePayment()`). Fulfil from the callback events.
+- a premium feature: Barion has to enable it for the shop, otherwise `startPayment()` fails with `RecurringPaymentNotAllowed`
+- `RecurrenceType`: `OneClickPayment` (the customer pays with the saved card on the shop's site, every charge needs 3D Secure), `MerchantInitiatedPayment` (the shop charges any amount at any time without the customer, no 3D Secure, the merchant carries the fraud liability), `RecurringPayment` (fixed schedule: not more than the first amount, at least `recurringFrequency` days apart, before `recurringExpiry`; Barion does not check these, the issuer declines). Use the same type for the first payment and every later charge.
+- first payment: `initiateRecurrence: true`, a unique `recurrenceId` generated and stored by the shop, the `recurrenceType`, and for `RecurringPayment` `purchaseInformation` with `recurringExpiry` and `recurringFrequency` (days). The customer pays on the gateway.
+- after it succeeds, store `$paymentState->traceId` with the `recurrenceId` and the `recurrenceType` (only bank card payments have one). Barion does not return the `recurrenceId` in the PaymentState, so keep your own copy.
+- `MerchantInitiatedPayment` / `RecurringPayment` charges (e.g. from a scheduled job): `startPayment()` with `initiateRecurrence: false`, the stored `recurrenceId`, `recurrenceType` and `traceId`, and a new `paymentRequestId` per billing period. No redirect. `recurrenceResult` `Successful` means charged. `ThreeDSAuthenticationRequired` here means the `traceId` is missing or wrong. Fulfil from the callback events.
+- `OneClickPayment` charges: no `traceId`. The response is `Prepared` with `ThreeDSAuthenticationRequired` and `threeDSAuthClientData`. Load `https://secure.barion.com/static/barion.offsitegw.min.js` and `.css` (`secure.test.barion.com` in test), run `new Barion.OffsiteGw({onAuthenticationSucceeded, onAuthenticationFailed})`, `gw.init()` on DOMContentLoaded and `gw.authenticate(threeDSAuthClientData)`. On success the backend calls `Barion::completePayment(CompletePaymentRequestData)`, which does the charge.
+- token errors are `BarionApiException` codes: `InvalidRecurrenceId`, `CardExpired`, `ThreeDsNotEnabled`, `InvalidTraceId`, `TooManyUnsuccessfulRecurringPaymentAttempts` (5 failures block the token until the next day)
+- Barion test cards always get a frictionless 3D Secure flow. A challenge only appears with a real card.
 
 ### 4. Settle when needed
 
 - `Barion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund
 - `Barion::finishReservation(FinishReservationRequestData)` for `PaymentType::Reservation`
 - `Barion::capture(CaptureRequestData)` and `cancelAuthorization(CancelAuthorizationRequestData)` for `PaymentType::DelayedCapture`
-- `Barion::completePayment(CompletePaymentRequestData)` (v2 Payment/Complete) for a token payment whose `startPayment()` response had `recurrenceResult` `ThreeDSAuthenticationRequired`, after the customer finished the 3D Secure authentication. It returns `CompletePaymentResponseData` (`status`, `isSuccessful`, `traceId`).
+- `Barion::completePayment(CompletePaymentRequestData)` (v2 Payment/Complete) for a `OneClickPayment` charge, after the off-site 3D Secure authentication succeeded. It returns `CompletePaymentResponseData` (`status`, `isSuccessful`, `traceId`).
 
 ## Rules, References, and Templates
 
-- auth uses the `x-pos-key` header, set by the package. Never add `POSKey` to request bodies.
+- auth uses the `x-pos-key` header, set by the package. Never add `POSKey` to request bodies yourself: for Payment/Complete, which needs it in the body too, the package adds it.
 - idempotency keys are sent automatically and derived from the request. Pass `idempotencyKey:` only when you need your own key.
 - errors: `BarionApiException` (`status`, `errors`, `hasErrorCode()`), `BarionConnectionException`, `BarionResponseException` (unexpected response shape, has the raw `body`), and `BarionException` for configuration problems
 - the callback route is rate limited per IP and paymentId (`callback.rate_limit`, default 120 per minute). Unknown payment ids get a 404.

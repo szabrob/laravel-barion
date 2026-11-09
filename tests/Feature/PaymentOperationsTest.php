@@ -15,6 +15,7 @@ use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Enums\TransactionStatus;
 use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
 use Szabrob\LaravelBarion\Facades\Barion;
+use Szabrob\LaravelBarion\LaravelBarion;
 
 function operationResponse(string $status): array
 {
@@ -144,7 +145,18 @@ it('completes a 3D Secure authenticated token payment', function (): void {
         ->and($response->paymentRequestId)->toBe('order-1001')
         ->and($response->traceId)->toBe('trace-1');
 
-    assertBarionPost('/v2/Payment/Complete', ['PaymentId' => PAYMENT_ID]);
+    // Payment/Complete answers InvalidShop unless the POSKey is in the body too.
+    assertBarionPost('/v2/Payment/Complete', ['POSKey' => 'test-pos-key', 'PaymentId' => PAYMENT_ID]);
+});
+
+it('derives the complete idempotency key without the POS key', function (): void {
+    Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'PaymentStatus' => 'Succeeded'])]);
+
+    Barion::completePayment(new CompletePaymentRequestData(PAYMENT_ID));
+
+    $expected = app(LaravelBarion::class)->idempotencyKeyFor('/v2/Payment/Complete', ['PaymentId' => PAYMENT_ID]);
+
+    Http::assertSent(fn (Request $request): bool => $request->header('Idempotency-Key') === [$expected]);
 });
 
 it('uses an explicit idempotency key when completing a payment', function (): void {
@@ -153,7 +165,7 @@ it('uses an explicit idempotency key when completing a payment', function (): vo
     Barion::completePayment(new CompletePaymentRequestData(PAYMENT_ID, idempotencyKey: 'complete-1'));
 
     Http::assertSent(fn (Request $request): bool => $request->header('Idempotency-Key') === ['complete-1']
-        && $request->data() === ['PaymentId' => PAYMENT_ID]);
+        && $request->data() === ['POSKey' => 'test-pos-key', 'PaymentId' => PAYMENT_ID]);
 });
 
 it('fails clearly when the complete response has no payment status', function (): void {

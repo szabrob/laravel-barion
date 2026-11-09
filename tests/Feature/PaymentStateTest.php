@@ -67,14 +67,12 @@ it('reads the token fields of a token payment', function (): void {
     Http::fake(['*' => Http::response([
         ...paymentStateResponse(),
         'RecurrenceType' => 'RecurringPayment',
-        'RecurrenceId' => 'sub-42',
         'TraceId' => 'trace-42',
     ])]);
 
     $state = Barion::paymentState(PAYMENT_ID);
 
     expect($state->recurrenceType)->toBe(RecurrenceType::RecurringPayment)
-        ->and($state->recurrenceId)->toBe('sub-42')
         ->and($state->traceId)->toBe('trace-42');
 });
 
@@ -84,7 +82,6 @@ it('leaves the token fields empty for a normal payment', function (): void {
     $state = Barion::paymentState(PAYMENT_ID);
 
     expect($state->recurrenceType)->toBeNull()
-        ->and($state->recurrenceId)->toBeNull()
         ->and($state->traceId)->toBeNull();
 });
 

@@ -36,9 +36,40 @@
                 @endif
                 <a class="btn" href="{{ route('workbench.barion.show', $paymentId) }}" style="background:var(--muted)">Frissítés</a>
                 @if (in_array($state->status->value, ['Prepared', 'Started', 'InProgress', 'Waiting'], true))
+                    @php $threeDSAuthClientData = $payment['threeDSAuthClientData'] ?? null; @endphp
                     <h2 style="margin-top:16px">3DS token fizetés lezárása (Payment/Complete)</h2>
-                    <p class="hint" style="margin-top:0">Tokenes fizetésnél, ha a startPayment() <code>ThreeDSAuthenticationRequired</code> recurrence resultot adott, és a vásárló elvégezte a 3D Secure azonosítást. Más fizetésnél a Barion hibát ad.</p>
-                    <form method="post" action="{{ route('workbench.barion.complete', $paymentId) }}">@csrf<button>Complete</button></form>
+                    @if ($threeDSAuthClientData && $offsiteGwBase)
+                        <p class="hint" style="margin-top:0">A terhelés <code>ThreeDSAuthenticationRequired</code> választ adott. Az azonosítás itt, a workbench oldalán fut a Barion off-site könyvtárával (<code>barion.offsitegw.min.js</code>), siker esetén a Complete automatikusan elindul. A Barion tesztkártyák mindig frictionless folyamatot adnak, challenge csak valódi kártyával jelenik meg.</p>
+                        <button type="button" id="offsite-3ds">3DS azonosítás → Complete</button>
+                        <p class="hint" id="offsite-3ds-status"></p>
+                    @else
+                        <p class="hint" style="margin-top:0">Tokenes fizetésnél, ha a startPayment() <code>ThreeDSAuthenticationRequired</code> recurrence resultot adott, és a vásárló elvégezte a 3D Secure azonosítást. Azonosítás nélkül a Barion „The 3DS authentication is not completed” hibát ad.</p>
+                    @endif
+                    <form method="post" action="{{ route('workbench.barion.complete', $paymentId) }}" id="complete-form">@csrf<button>Complete azonosítás nélkül</button></form>
+
+                    @if ($threeDSAuthClientData && $offsiteGwBase)
+                        <link href="{{ $offsiteGwBase }}/static/barion.offsitegw.min.css" rel="stylesheet">
+                        <script src="{{ $offsiteGwBase }}/static/barion.offsitegw.min.js"></script>
+                        <script>
+                            (function () {
+                                const status = (text) => { document.getElementById('offsite-3ds-status').textContent = text; };
+                                const gw = new Barion.OffsiteGw({
+                                    onAuthenticationSucceeded: function () {
+                                        status('Sikeres 3DS azonosítás, Payment/Complete indul…');
+                                        document.getElementById('complete-form').submit();
+                                    },
+                                    onAuthenticationFailed: function () {
+                                        status('Sikertelen 3DS azonosítás. Nem történt terhelés, a payment még érvényes lehet.');
+                                    },
+                                });
+                                document.addEventListener('DOMContentLoaded', function () { gw.init(); });
+                                document.getElementById('offsite-3ds').addEventListener('click', function () {
+                                    status('Azonosítás folyamatban…');
+                                    gw.authenticate(@json($threeDSAuthClientData));
+                                });
+                            })();
+                        </script>
+                    @endif
                 @endif
             </section>
 
@@ -56,8 +87,7 @@
                 <h2>Tokenes fizetés</h2>
                 <dl>
                     <dt>RecurrenceType</dt><dd>{{ $state->recurrenceType?->value ?? $payment['recurrenceType'] ?? '–' }}</dd>
-                    <dt>RecurrenceId (workbench napló)</dt><dd><code>{{ $payment['recurrenceId'] ?? '–' }}</code></dd>
-                    <dt>RecurrenceId (PaymentState)</dt><dd><code>{{ $state->recurrenceId ?? '–' }}</code> <span class="muted">csak akkor van, ha a Barion visszaküldi</span></dd>
+                    <dt>RecurrenceId</dt><dd><code>{{ $payment['recurrenceId'] ?? '–' }}</code> <span class="muted">a workbench naplóból, a PaymentState nem adja vissza</span></dd>
                     <dt>TraceId</dt><dd><code>{{ $state->traceId ?? '–' }}</code></dd>
                 </dl>
                 @if (! empty($payment['recurrenceId']))

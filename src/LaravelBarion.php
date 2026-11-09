@@ -126,7 +126,15 @@ class LaravelBarion
      */
     public function completePayment(CompletePaymentRequestData $request): CompletePaymentResponseData
     {
-        return $this->map(CompletePaymentResponseData::class, '/v2/Payment/Complete', $this->post('/v2/Payment/Complete', $request->toArray(), $request->idempotencyKey));
+        $endpoint = '/v2/Payment/Complete';
+        $body = $request->toArray();
+
+        // Unlike the other endpoints, Payment/Complete ignores the x-pos-key
+        // header and answers InvalidShop unless the POSKey is in the body too
+        // (verified on the test API). The idempotency key is derived without it.
+        $idempotencyKey = $request->idempotencyKey ?? $this->idempotencyKeyFor($endpoint, $body);
+
+        return $this->map(CompletePaymentResponseData::class, $endpoint, $this->post($endpoint, ['POSKey' => $this->posKey(), ...$body], $idempotencyKey));
     }
 
     /**
@@ -247,11 +255,7 @@ class LaravelBarion
     private function pendingRequest(): PendingRequest
     {
         $environment = $this->environment();
-        $posKey = $this->config->get("laravel-barion.{$environment->value}.pos_key");
-
-        if (! is_string($posKey) || $posKey === '') {
-            throw BarionException::missingPosKey($environment->value);
-        }
+        $posKey = $this->posKey();
 
         return $this->http
             ->baseUrl($environment->apiUrl())
@@ -267,6 +271,18 @@ class LaravelBarion
                     || ($exception instanceof RequestException && $exception->response->serverError()),
                 throw: false,
             );
+    }
+
+    private function posKey(): string
+    {
+        $environment = $this->environment()->value;
+        $posKey = $this->config->get("laravel-barion.{$environment}.pos_key");
+
+        if (! is_string($posKey) || $posKey === '') {
+            throw BarionException::missingPosKey($environment);
+        }
+
+        return $posKey;
     }
 
     private function defaultCallbackUrl(): ?string
