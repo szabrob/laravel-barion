@@ -51,8 +51,8 @@ return [
     | used as the default CallbackUrl of every started payment.
     |
     | Every callback triggers an outgoing PaymentState request, so the route
-    | is rate limited per IP address ("rate_limit" requests per minute, null
-    | disables it). Throttled callbacks get a 429 and Barion retries them.
+    | is rate limited per IP address and paymentId ("rate_limit" requests per
+    | minute for one payment, null disables it). Throttled callbacks get a 429 and Barion retries them.
     |
     */
 

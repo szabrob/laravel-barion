@@ -114,7 +114,7 @@ Barion calls the callback URL with only the `paymentId`, and the call is not sig
 3. dispatches events with the `PaymentStateData` it got back,
 4. answers `200`. If Barion does not know the payment (`NotExistingPaymentId`), it answers `404` without logging an error. For any other failure (for example a wrong POS key) it answers with an error, so Barion sends the callback again later.
 
-Every callback makes an outgoing API call, so the route is rate limited per IP address: `callback.rate_limit` requests per minute, `120` by default, `null` disables it. Throttled requests get a `429`, and Barion retries them.
+Every callback makes an outgoing API call, so the route is rate limited per IP address and `paymentId`: `callback.rate_limit` requests per minute for one payment from one IP, `120` by default, `null` disables it. Throttled requests get a `429`, and Barion retries them.
 
 | Event                  | When                                                                 |
 |------------------------|----------------------------------------------------------------------|

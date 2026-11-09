@@ -55,7 +55,7 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 - auth uses the `x-pos-key` header, set by the package. Never add `POSKey` to request bodies.
 - idempotency keys are sent automatically and derived from the request. Pass `idempotencyKey:` only when you need your own key.
 - errors: `BarionApiException` (`status`, `errors`, `hasErrorCode()`), `BarionConnectionException`, `BarionResponseException` (unexpected response shape, has the raw `body`), and `BarionException` for configuration problems
-- the callback route is rate limited per IP (`callback.rate_limit`, default 120 per minute). Unknown payment ids get a 404.
+- the callback route is rate limited per IP and paymentId (`callback.rate_limit`, default 120 per minute). Unknown payment ids get a 404.
 - hide the `x-pos-key` header in Telescope and other HTTP request loggers
 - Barion Pixel: `<x-laravel-barion::pixel />` in the layout `<head>`. It needs `BARION_PIXEL_ID` and accepts an optional `:nonce`.
 - tests: fake `api.test.barion.com/*` with `Http::fake()` and post to `/barion/callback`

@@ -6,6 +6,10 @@
 
 - `PaymentPartiallySucceeded` callback event. A partially finished reservation used to dispatch no status event.
 
+### Changed
+
+- The callback rate limit is keyed by IP address and `paymentId` instead of IP address only, so busy shops no longer throttle Barion's callbacks.
+
 ## [v0.2.0](https://github.com/szabrob/laravel-barion/compare/v0.1.0...v0.2.0) - 2026-11-08
 
 ### Breaking Changes

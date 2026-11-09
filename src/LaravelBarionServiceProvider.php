@@ -30,9 +30,17 @@ class LaravelBarionServiceProvider extends ServiceProvider
         RateLimiter::for(LaravelBarion::CALLBACK_RATE_LIMITER, function (Request $request): Limit {
             $perMinute = config('laravel-barion.callback.rate_limit');
 
-            return is_numeric($perMinute)
-                ? Limit::perMinute((int) $perMinute)->by((string) $request->ip())
-                : Limit::none();
+            if (! is_numeric($perMinute)) {
+                return Limit::none();
+            }
+
+            // Keyed by IP and paymentId: Barion sends every callback from a few
+            // IPs, so a per-IP key alone would throttle busy shops. Dashes and
+            // case are normalized, so the variants of one id share a counter.
+            $paymentId = $request->input('paymentId', $request->input('PaymentId'));
+            $paymentId = is_string($paymentId) ? strtolower(str_replace('-', '', $paymentId)) : '';
+
+            return Limit::perMinute((int) $perMinute)->by($request->ip().'|'.$paymentId);
         });
 
         $this->loadRoutesFrom(__DIR__.'/../routes/laravel-barion.php');
