@@ -37,6 +37,7 @@ final class BarionApiException extends BarionException
      */
     public static function fromResponse(string $endpoint, int $status, array $body): self
     {
+        $body = self::redactSecrets($body);
         $errors = self::errorsFrom($body);
 
         $details = implode('; ', array_filter(array_map(

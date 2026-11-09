@@ -365,7 +365,7 @@ $response->isSuccessful;
 
 | Exception                   | When                                                                 |
 |-----------------------------|----------------------------------------------------------------------|
-| `BarionApiException`        | Barion answered with an error status or a non-empty `Errors` list. It has `status`, `errors` (`ApiErrorData[]`) and the raw `body`. |
+| `BarionApiException`        | Barion answered with an error status or a non-empty `Errors` list. It has `status`, `errors` (`ApiErrorData[]`) and the raw `body`, with the POS key that Barion echoes in `AuthData` replaced by `[redacted]`. |
 | `BarionConnectionException` | Barion could not be reached, even after the retries.                 |
 | `BarionResponseException`   | Barion answered successfully, but the response does not fit the expected DTO, for example a required field is missing. It has `dataClass` and the raw `body`. |
 | `BarionException`           | Configuration problem (unknown environment, missing POS key or payee). All the exceptions above extend this class. |

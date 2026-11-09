@@ -2,17 +2,6 @@
 
 ## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.2.0...HEAD)
 
-### Added
-
-- `PaymentPartiallySucceeded` callback event. A partially finished reservation used to dispatch no status event.
-- `completePayment()` (v2 Payment/Complete) with `CompletePaymentRequestData` and `CompletePaymentResponseData`, to complete a 3D Secure authenticated token payment
-- README section on token payments: the three recurrence types, card registration and scheduled charges
-- Workbench: card registration on the start form, scheduled token charges (`barion:charge-due`, run by the scheduler every minute), and off-site 3D Secure authentication with `completePayment()` for `OneClickPayment` charges
-
-### Changed
-
-- The callback rate limit is keyed by IP address and `paymentId` instead of IP address only, so busy shops no longer throttle Barion's callbacks.
-
 ## [v0.2.0](https://github.com/szabrob/laravel-barion/compare/v0.1.0...v0.2.0) - 2026-11-08
 
 ### Breaking Changes

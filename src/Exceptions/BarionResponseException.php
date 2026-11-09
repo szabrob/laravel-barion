@@ -33,7 +33,7 @@ final class BarionResponseException extends BarionException
         return new self(
             sprintf('Unexpected Barion API response from [%s]; it cannot be mapped to [%s]: %s', $endpoint, class_basename($dataClass), $previous->getMessage()),
             $dataClass,
-            $body,
+            self::redactSecrets($body),
             $previous,
         );
     }
