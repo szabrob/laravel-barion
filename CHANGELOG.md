@@ -1,6 +1,23 @@
 # Release Notes
 
-## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.2.0...HEAD)
+## [Unreleased](https://github.com/szabrob/laravel-barion/compare/v0.3.0...HEAD)
+
+## [v0.3.0](https://github.com/szabrob/laravel-barion/compare/v0.2.0...v0.3.0) - 2026-11-09
+
+### Added
+
+- Token payments are documented and tested end to end on the Barion test API. The README covers the three recurrence types (`OneClickPayment`, `MerchantInitiatedPayment`, `RecurringPayment`) and their rules, card registration, storing the `traceId`, scheduled charges, the off-site 3D Secure authentication with Barion's `barion.offsitegw` library, and the token error codes.
+- `completePayment()` (v2 Payment/Complete) with `CompletePaymentRequestData` and `CompletePaymentResponseData`, to complete a `OneClickPayment` token charge after the off-site 3D Secure authentication. Payment/Complete needs the POS key in the request body too, and the package adds it.
+- `PaymentPartiallySucceeded` callback event. A partially finished reservation used to dispatch no status event.
+
+### Changed
+
+- `BarionApiException::$body` and `BarionResponseException::$body` replace the `AuthData` and `POSKey` fields with `[redacted]`. Barion echoes the POS key in `AuthData` in every error response, so it used to end up in logs and error trackers.
+- The callback rate limit is keyed by IP address and `paymentId` instead of IP address only, so busy shops no longer throttle Barion's callbacks.
+
+### Maintenance
+
+- Workbench: card registration on the start form, scheduled token charges (`barion:charge-due`, run by the scheduler every minute), and off-site 3D Secure authentication with `completePayment()` for `OneClickPayment` charges
 
 ## [v0.2.0](https://github.com/szabrob/laravel-barion/compare/v0.1.0...v0.2.0) - 2026-11-08
 
