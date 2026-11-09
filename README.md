@@ -219,6 +219,22 @@ Barion::cancelAuthorization(new CancelAuthorizationRequestData($paymentId));
 
 All three return a `PaymentOperationResponseData` (`isSuccessful`, `status`, `transactions`).
 
+### Completing a 3D Secure token payment
+
+A token payment (`recurrenceId` set) can come back from `startPayment()` with `recurrenceResult` `RecurrenceResult::ThreeDSAuthenticationRequired` and `threeDSAuthClientData`. After the customer finished the 3D Secure authentication, complete the payment:
+
+```php
+use Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData;
+
+$response = Barion::completePayment(new CompletePaymentRequestData($paymentId));
+
+$response->status;        // PaymentStatus
+$response->isSuccessful;
+$response->traceId;
+```
+
+It returns a `CompletePaymentResponseData` (`paymentId`, `status`, `isSuccessful`, `paymentRequestId`, `traceId`). The callback still arrives, so fulfil the order from the callback events as usual.
+
 ### Errors
 
 | Exception                   | When                                                                 |

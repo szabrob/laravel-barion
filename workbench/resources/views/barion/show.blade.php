@@ -35,6 +35,11 @@
                     <a class="btn" href="{{ $gatewayUrl }}">Tovább a fizetőoldalra</a>
                 @endif
                 <a class="btn" href="{{ route('workbench.barion.show', $paymentId) }}" style="background:var(--muted)">Frissítés</a>
+                @if (in_array($state->status->value, ['Prepared', 'Started', 'InProgress', 'Waiting'], true))
+                    <h2 style="margin-top:16px">3DS token fizetés lezárása (Payment/Complete)</h2>
+                    <p class="hint" style="margin-top:0">Tokenes fizetésnél, ha a startPayment() <code>ThreeDSAuthenticationRequired</code> recurrence resultot adott, és a vásárló elvégezte a 3D Secure azonosítást. Más fizetésnél a Barion hibát ad.</p>
+                    <form method="post" action="{{ route('workbench.barion.complete', $paymentId) }}">@csrf<button>Complete</button></form>
+                @endif
             </section>
 
             <section class="card">

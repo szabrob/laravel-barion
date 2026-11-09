@@ -49,6 +49,7 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 - `Barion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund
 - `Barion::finishReservation(FinishReservationRequestData)` for `PaymentType::Reservation`
 - `Barion::capture(CaptureRequestData)` and `cancelAuthorization(CancelAuthorizationRequestData)` for `PaymentType::DelayedCapture`
+- `Barion::completePayment(CompletePaymentRequestData)` (v2 Payment/Complete) for a token payment whose `startPayment()` response had `recurrenceResult` `ThreeDSAuthenticationRequired`, after the customer finished the 3D Secure authentication. It returns `CompletePaymentResponseData` (`status`, `isSuccessful`, `traceId`).
 
 ## Rules, References, and Templates
 

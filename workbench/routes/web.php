@@ -15,4 +15,5 @@ Route::controller(BarionController::class)->name('workbench.barion.')->group(fun
     Route::post('/payments/{paymentId}/finish', 'finish')->name('finish');
     Route::post('/payments/{paymentId}/capture', 'capture')->name('capture');
     Route::post('/payments/{paymentId}/cancel', 'cancel')->name('cancel');
+    Route::post('/payments/{paymentId}/complete', 'complete')->name('complete');
 });

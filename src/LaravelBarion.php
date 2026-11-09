@@ -16,9 +16,11 @@ use Illuminate\Http\Client\Response;
 use Spatie\LaravelData\Data;
 use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData;
 use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
 use Szabrob\LaravelBarion\Data\Requests\RefundRequestData;
+use Szabrob\LaravelBarion\Data\Responses\CompletePaymentResponseData;
 use Szabrob\LaravelBarion\Data\Responses\PaymentOperationResponseData;
 use Szabrob\LaravelBarion\Data\Responses\PaymentResponseData;
 use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
@@ -115,6 +117,16 @@ class LaravelBarion
     public function cancelAuthorization(CancelAuthorizationRequestData $request): PaymentOperationResponseData
     {
         return $this->map(PaymentOperationResponseData::class, '/v2/Payment/CancelAuthorization', $this->post('/v2/Payment/CancelAuthorization', $request->toArray(), $request->idempotencyKey));
+    }
+
+    /**
+     * Complete a token payment (v2 Payment/Complete) after the customer finished
+     * the 3D Secure authentication that startPayment() asked for
+     * (recurrenceResult ThreeDSAuthenticationRequired).
+     */
+    public function completePayment(CompletePaymentRequestData $request): CompletePaymentResponseData
+    {
+        return $this->map(CompletePaymentResponseData::class, '/v2/Payment/Complete', $this->post('/v2/Payment/Complete', $request->toArray(), $request->idempotencyKey));
     }
 
     /**

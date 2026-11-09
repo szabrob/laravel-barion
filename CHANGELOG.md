@@ -5,6 +5,7 @@
 ### Added
 
 - `PaymentPartiallySucceeded` callback event. A partially finished reservation used to dispatch no status event.
+- `completePayment()` (v2 Payment/Complete) with `CompletePaymentRequestData` and `CompletePaymentResponseData`, to complete a 3D Secure authenticated token payment
 
 ### Changed
 

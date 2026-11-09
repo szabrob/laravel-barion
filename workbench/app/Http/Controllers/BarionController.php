@@ -14,6 +14,7 @@ use Spatie\LaravelData\Data;
 use Szabrob\LaravelBarion\Data\ItemData;
 use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData;
 use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\PaymentRequestData;
 use Szabrob\LaravelBarion\Data\Requests\PaymentTransactionData;
@@ -199,6 +200,16 @@ final class BarionController
     {
         return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'CancelAuthorization válasz', $this->barion->cancelAuthorization(
             new CancelAuthorizationRequestData($paymentId),
+        )));
+    }
+
+    /**
+     * Payment/Complete for a token payment after the off-site 3D Secure authentication.
+     */
+    public function complete(string $paymentId): RedirectResponse
+    {
+        return $this->attempt(fn (): RedirectResponse => $this->done($paymentId, 'Payment/Complete válasz', $this->barion->completePayment(
+            new CompletePaymentRequestData($paymentId),
         )));
     }
 

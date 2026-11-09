@@ -6,12 +6,14 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\CaptureRequestData;
+use Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData;
 use Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData;
 use Szabrob\LaravelBarion\Data\Requests\RefundRequestData;
 use Szabrob\LaravelBarion\Data\Requests\TransactionToFinishData;
 use Szabrob\LaravelBarion\Data\Requests\TransactionToRefundData;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Enums\TransactionStatus;
+use Szabrob\LaravelBarion\Exceptions\BarionResponseException;
 use Szabrob\LaravelBarion\Facades\Barion;
 
 function operationResponse(string $status): array
@@ -123,3 +125,39 @@ it('cancels an authorization', function (): void {
 
     assertBarionPost('/v2/Payment/CancelAuthorization', ['PaymentId' => PAYMENT_ID]);
 });
+
+it('completes a 3D Secure authenticated token payment', function (): void {
+    Http::fake(['*' => Http::response([
+        'IsSuccessful' => true,
+        'PaymentId' => PAYMENT_ID,
+        'PaymentRequestId' => 'order-1001',
+        'PaymentStatus' => 'Succeeded',
+        'TraceId' => 'trace-1',
+        'Errors' => [],
+    ])]);
+
+    $response = Barion::completePayment(new CompletePaymentRequestData(PAYMENT_ID));
+
+    expect($response->paymentId)->toBe(PAYMENT_ID)
+        ->and($response->status)->toBe(PaymentStatus::Succeeded)
+        ->and($response->isSuccessful)->toBeTrue()
+        ->and($response->paymentRequestId)->toBe('order-1001')
+        ->and($response->traceId)->toBe('trace-1');
+
+    assertBarionPost('/v2/Payment/Complete', ['PaymentId' => PAYMENT_ID]);
+});
+
+it('uses an explicit idempotency key when completing a payment', function (): void {
+    Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'PaymentStatus' => 'Succeeded'])]);
+
+    Barion::completePayment(new CompletePaymentRequestData(PAYMENT_ID, idempotencyKey: 'complete-1'));
+
+    Http::assertSent(fn (Request $request): bool => $request->header('Idempotency-Key') === ['complete-1']
+        && $request->data() === ['PaymentId' => PAYMENT_ID]);
+});
+
+it('fails clearly when the complete response has no payment status', function (): void {
+    Http::fake(['*' => Http::response(['PaymentId' => PAYMENT_ID, 'IsSuccessful' => true])]);
+
+    Barion::completePayment(new CompletePaymentRequestData(PAYMENT_ID));
+})->throws(BarionResponseException::class);

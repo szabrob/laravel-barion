@@ -15,6 +15,7 @@ use Szabrob\LaravelBarion\LaravelBarion;
  * @method static \Szabrob\LaravelBarion\Data\Responses\PaymentOperationResponseData finishReservation(\Szabrob\LaravelBarion\Data\Requests\FinishReservationRequestData $request)
  * @method static \Szabrob\LaravelBarion\Data\Responses\PaymentOperationResponseData capture(\Szabrob\LaravelBarion\Data\Requests\CaptureRequestData $request)
  * @method static \Szabrob\LaravelBarion\Data\Responses\PaymentOperationResponseData cancelAuthorization(\Szabrob\LaravelBarion\Data\Requests\CancelAuthorizationRequestData $request)
+ * @method static \Szabrob\LaravelBarion\Data\Responses\CompletePaymentResponseData completePayment(\Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData $request)
  * @method static \Szabrob\LaravelBarion\Data\Responses\PaymentStateData handleCallback(string $paymentId)
  * @method static string gatewayUrl(string $paymentId)
  * @method static string idempotencyKeyFor(string $endpoint, array<array-key, mixed> $body)
