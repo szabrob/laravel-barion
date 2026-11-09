@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Szabrob\LaravelBarion\Events\PaymentAuthorized;
 use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentPartiallySucceeded;
 use Szabrob\LaravelBarion\Events\PaymentRefunded;
 use Szabrob\LaravelBarion\Events\PaymentReserved;
 use Szabrob\LaravelBarion\Events\PaymentStateReceived;
@@ -40,10 +41,10 @@ class WorkbenchServiceProvider extends ServiceProvider
             }
         }
 
-        $events = [PaymentStateReceived::class, PaymentSucceeded::class, PaymentFailed::class, PaymentReserved::class, PaymentAuthorized::class, PaymentRefunded::class];
+        $events = [PaymentStateReceived::class, PaymentSucceeded::class, PaymentFailed::class, PaymentPartiallySucceeded::class, PaymentReserved::class, PaymentAuthorized::class, PaymentRefunded::class];
 
         foreach ($events as $event) {
-            Event::listen($event, function (PaymentStateReceived|PaymentSucceeded|PaymentFailed|PaymentReserved|PaymentAuthorized|PaymentRefunded $event): void {
+            Event::listen($event, function (PaymentStateReceived|PaymentSucceeded|PaymentFailed|PaymentPartiallySucceeded|PaymentReserved|PaymentAuthorized|PaymentRefunded $event): void {
                 BarionLog::addEvent([
                     'event' => class_basename($event),
                     'paymentId' => $event->paymentState->paymentId,

@@ -121,6 +121,7 @@ Every callback makes an outgoing API call, so the route is rate limited per IP a
 | `PaymentStateReceived` | Every callback                                                       |
 | `PaymentSucceeded`     | Verified status is `Succeeded`                                       |
 | `PaymentFailed`        | Verified status is `Canceled`, `Failed` or `Expired`                 |
+| `PaymentPartiallySucceeded` | Verified status is `PartiallySucceeded` (Reservation payment finished with only part of its transactions or amount) |
 | `PaymentReserved`      | Verified status is `Reserved` (Reservation payment, call `finishReservation()`) |
 | `PaymentAuthorized`    | Verified status is `Authorized` (DelayedCapture payment, call `capture()` or `cancelAuthorization()`) |
 | `PaymentRefunded`      | The payment has succeeded refund transactions. It is dispatched in addition to the status event. |

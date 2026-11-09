@@ -11,6 +11,7 @@ use Szabrob\LaravelBarion\Data\Responses\TransactionDetailData;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Events\PaymentAuthorized;
 use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentPartiallySucceeded;
 use Szabrob\LaravelBarion\Events\PaymentRefunded;
 use Szabrob\LaravelBarion\Events\PaymentReserved;
 use Szabrob\LaravelBarion\Events\PaymentStateReceived;
@@ -22,6 +23,7 @@ const ALL_EVENTS = [
     PaymentStateReceived::class,
     PaymentSucceeded::class,
     PaymentFailed::class,
+    PaymentPartiallySucceeded::class,
     PaymentReserved::class,
     PaymentAuthorized::class,
     PaymentRefunded::class,
@@ -171,7 +173,7 @@ it('dispatches the event of the verified status', function (string $status, arra
     'reserved' => ['Reserved', [PaymentReserved::class]],
     'authorized' => ['Authorized', [PaymentAuthorized::class]],
     'succeeded' => ['Succeeded', [PaymentSucceeded::class]],
-    'partially succeeded' => ['PartiallySucceeded', []],
+    'partially succeeded' => ['PartiallySucceeded', [PaymentPartiallySucceeded::class]],
     'canceled' => ['Canceled', [PaymentFailed::class]],
     'failed' => ['Failed', [PaymentFailed::class]],
     'expired' => ['Expired', [PaymentFailed::class]],

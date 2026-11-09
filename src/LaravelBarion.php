@@ -27,6 +27,7 @@ use Szabrob\LaravelBarion\Enums\Environment;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Events\PaymentAuthorized;
 use Szabrob\LaravelBarion\Events\PaymentFailed;
+use Szabrob\LaravelBarion\Events\PaymentPartiallySucceeded;
 use Szabrob\LaravelBarion\Events\PaymentRefunded;
 use Szabrob\LaravelBarion\Events\PaymentReserved;
 use Szabrob\LaravelBarion\Events\PaymentStateReceived;
@@ -128,6 +129,7 @@ class LaravelBarion
 
         $statusEvent = match (true) {
             $state->status->isSuccessful() => new PaymentSucceeded($state),
+            $state->status === PaymentStatus::PartiallySucceeded => new PaymentPartiallySucceeded($state),
             $state->status->isFailed() => new PaymentFailed($state),
             $state->status === PaymentStatus::Reserved => new PaymentReserved($state),
             $state->status === PaymentStatus::Authorized => new PaymentAuthorized($state),

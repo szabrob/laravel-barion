@@ -4,6 +4,9 @@
     "description": "Barion Smart Gateway integration for Laravel with typed DTOs, callback events and Barion Pixel support.",
     "keywords": [
         "laravel",
+        "barion",
+        "barion-pixel",
+        "payment",
         "szabrob",
         "laravel-barion"
     ],
