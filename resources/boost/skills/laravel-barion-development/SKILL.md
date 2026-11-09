@@ -44,6 +44,13 @@ Use this skill when a Laravel application takes payments through Barion with `sz
 - look up the order by `paymentState->paymentId` and keep the listener idempotent, because callbacks repeat
 - on the return page, call `Barion::paymentState($paymentId)`. Don't trust query parameters.
 
+### Token payments (saved cards)
+
+- `RecurrenceType`: `OneClickPayment` (the customer pays with the saved card, may need 3D Secure), `MerchantInitiatedPayment` (the shop charges a varying amount or time without the customer), `RecurringPayment` (fixed schedule subscription). Use the same type for the first payment and every later charge.
+- first payment: `initiateRecurrence: true`, a `recurrenceId` generated and stored by the shop, the `recurrenceType`, and for `RecurringPayment` `purchaseInformation` with `recurringExpiry` and `recurringFrequency` (days). The customer pays on the gateway.
+- after it succeeds, store `$paymentState->traceId`. `$paymentState->recurrenceId` is only filled when Barion sends it, so keep your own copy.
+- later charges (e.g. from a scheduled job): `startPayment()` with `initiateRecurrence: false`, the stored `recurrenceId`, `recurrenceType` and `traceId`, and a new `paymentRequestId` per billing period. There is no redirect. Check `$response->recurrenceResult`: `Successful`, `Failed`, `NotFound` (the token is gone) or `ThreeDSAuthenticationRequired` (then `completePayment()`). Fulfil from the callback events.
+
 ### 4. Settle when needed
 
 - `Barion::refund(RefundRequestData)` with a unique `posTransactionId` for each refund

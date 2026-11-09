@@ -9,6 +9,7 @@ use Szabrob\LaravelBarion\Data\Responses\PaymentStateData;
 use Szabrob\LaravelBarion\Enums\Currency;
 use Szabrob\LaravelBarion\Enums\PaymentStatus;
 use Szabrob\LaravelBarion\Enums\PaymentType;
+use Szabrob\LaravelBarion\Enums\RecurrenceType;
 use Szabrob\LaravelBarion\Enums\TransactionStatus;
 use Szabrob\LaravelBarion\Exceptions\BarionApiException;
 use Szabrob\LaravelBarion\Exceptions\BarionConnectionException;
@@ -60,6 +61,31 @@ it('maps the payment state to typed DTOs', function (): void {
         ->and($transaction->payee?->name?->displayName())->toBe('Test Shop Kft.')
         ->and($transaction->transactionType)->toBe('CardPayment')
         ->and($transaction->items[0]->sku)->toBe('TS-BLK-M');
+});
+
+it('reads the token fields of a token payment', function (): void {
+    Http::fake(['*' => Http::response([
+        ...paymentStateResponse(),
+        'RecurrenceType' => 'RecurringPayment',
+        'RecurrenceId' => 'sub-42',
+        'TraceId' => 'trace-42',
+    ])]);
+
+    $state = Barion::paymentState(PAYMENT_ID);
+
+    expect($state->recurrenceType)->toBe(RecurrenceType::RecurringPayment)
+        ->and($state->recurrenceId)->toBe('sub-42')
+        ->and($state->traceId)->toBe('trace-42');
+});
+
+it('leaves the token fields empty for a normal payment', function (): void {
+    Http::fake(['*' => Http::response([...paymentStateResponse(), 'TraceId' => null])]);
+
+    $state = Barion::paymentState(PAYMENT_ID);
+
+    expect($state->recurrenceType)->toBeNull()
+        ->and($state->recurrenceId)->toBeNull()
+        ->and($state->traceId)->toBeNull();
 });
 
 it('tolerates unknown secondary enum values from Barion', function (): void {

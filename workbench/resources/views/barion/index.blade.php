@@ -55,6 +55,14 @@
                 <input name="payer_hint" type="email" value="{{ old('payer_hint') }}">
                 <label>Saját idempotency key (opcionális, üresen a csomag generálja)</label>
                 <input name="idempotency_key" value="{{ old('idempotency_key') }}">
+                <label>Kártya regisztrálása tokenes fizetéshez (InitiateRecurrence)</label>
+                <select name="recurrence_type">
+                    <option value="">Nem, sima fizetés</option>
+                    @foreach (\Szabrob\LaravelBarion\Enums\RecurrenceType::cases() as $case)
+                        <option @selected(old('recurrence_type') === $case->value)>{{ $case->value }}</option>
+                    @endforeach
+                </select>
+                <p class="hint" style="margin-top:4px">A workbench generál egy recurrenceId-t. Sikeres fizetés után a fizetés oldalán ütemezett terhelést állíthatsz be erre a kártyára. RecurringPayment esetén 1 napos recurringFrequency-t és 1 éves recurringExpiry-t küld.</p>
                 <input type="hidden" name="guest_checkout" value="0">
                 <label class="check"><input type="checkbox" name="guest_checkout" value="1" @checked(old('guest_checkout', '1') === '1')> Vendég fizetés engedélyezése</label>
                 <button>Fizetés indítása → Barion</button>
@@ -75,7 +83,7 @@
                         <td>{{ $payment['at'] }}</td>
                         <td><a href="{{ route('workbench.barion.show', $payment['paymentId']) }}"><code>{{ $payment['paymentId'] }}</code></a></td>
                         <td><code>{{ $payment['paymentRequestId'] }}</code></td>
-                        <td>{{ $payment['type'] }}</td>
+                        <td>{{ $payment['type'] }}@if (! empty($payment['recurrenceType']))<br><span class="muted">kártyaregisztráció: {{ $payment['recurrenceType'] }}</span>@endif</td>
                         <td>{{ $payment['total'] }} {{ $payment['currency'] }}</td>
                         <td>{{ $payment['environment'] }}</td>
                         <td><a href="{{ $payment['gatewayUrl'] }}">fizetőoldal</a></td>
@@ -83,6 +91,12 @@
                 @endforeach
             </table></div>
         @endif
+    </section>
+
+    <section class="card">
+        <h2>Ütemezett token terhelések</h2>
+        <p class="hint" style="margin-top:0">A <code>barion:charge-due</code> parancs terheli az esedékeseket, percenként ütemezve: <code>vendor/bin/testbench schedule:work</code>. Egyszeri futtatás: <code>vendor/bin/testbench barion:charge-due</code>.</p>
+        @include('barion.schedules', ['schedules' => $schedules])
     </section>
 
     <section class="card">

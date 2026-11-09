@@ -37,6 +37,8 @@ final class PaymentStateData extends Data
     /**
      * @param  array<int, string>  $allowedFundingSources
      * @param  array<int, TransactionDetailData>  $transactions
+     * @param  string|null  $recurrenceId  Only filled when Barion sends it. The official Barion client does not read it from PaymentState, so store the recurrenceId you generated for the first payment.
+     * @param  string|null  $traceId  The 3D Secure trace id of a token payment. Store it from the first payment and send it with every later charge of the token.
      */
     public function __construct(
         public readonly string $paymentId,
@@ -78,6 +80,7 @@ final class PaymentStateData extends Data
         public readonly ?string $callbackUrl = null,
         #[WithCast(LenientEnumCast::class, RecurrenceType::class)]
         public readonly ?RecurrenceType $recurrenceType = null,
+        public readonly ?string $recurrenceId = null,
         public readonly ?string $traceId = null,
         public readonly ?string $paymentMethod = null,
     ) {}

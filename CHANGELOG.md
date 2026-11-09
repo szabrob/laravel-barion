@@ -6,6 +6,9 @@
 
 - `PaymentPartiallySucceeded` callback event. A partially finished reservation used to dispatch no status event.
 - `completePayment()` (v2 Payment/Complete) with `CompletePaymentRequestData` and `CompletePaymentResponseData`, to complete a 3D Secure authenticated token payment
+- `PaymentStateData::$recurrenceId`, filled when Barion sends it
+- README section on token payments: the three recurrence types, card registration and scheduled charges
+- Workbench: card registration on the start form and scheduled token charges (`barion:charge-due`, run by the scheduler every minute)
 
 ### Changed
 

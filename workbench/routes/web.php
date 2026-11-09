@@ -16,4 +16,7 @@ Route::controller(BarionController::class)->name('workbench.barion.')->group(fun
     Route::post('/payments/{paymentId}/capture', 'capture')->name('capture');
     Route::post('/payments/{paymentId}/cancel', 'cancel')->name('cancel');
     Route::post('/payments/{paymentId}/complete', 'complete')->name('complete');
+    Route::post('/payments/{paymentId}/schedule', 'schedule')->name('schedule');
+    Route::post('/schedules/{scheduleId}/charge', 'chargeSchedule')->name('schedules.charge');
+    Route::post('/schedules/{scheduleId}/delete', 'deleteSchedule')->name('schedules.delete');
 });

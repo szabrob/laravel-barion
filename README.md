@@ -103,7 +103,7 @@ return redirect()->away($payment->gatewayUrl);
 
 > **Use a new `paymentRequestId` for every payment attempt.** Because the idempotency key comes from the request body, starting the same request again returns the *same* Barion payment. That protects against duplicate payments on retries. But if the customer canceled the payment or let it expire, a "pay again" with the same `paymentRequestId` and the same data would bring back the old, closed payment. Include an attempt number (as above) or another per-attempt value in `paymentRequestId` and `posTransactionId`.
 
-`PaymentRequestData::from([...])` with a camelCase array works too. Optional 3D Secure data (`shippingAddress`, `billingAddress`, `payerAccountInformation`, `purchaseInformation`, `challengePreference`) and recurring payment fields (`initiateRecurrence`, `recurrenceId`, `recurrenceType`) are supported. For `PaymentType::Reservation` and `PaymentType::DelayedCapture`, also set `reservationPeriod` or `delayedCapturePeriod`.
+`PaymentRequestData::from([...])` with a camelCase array works too. Optional 3D Secure data (`shippingAddress`, `billingAddress`, `payerAccountInformation`, `purchaseInformation`, `challengePreference`) and token payment fields (`initiateRecurrence`, `recurrenceId`, `recurrenceType`, `traceId`) are supported, see [Token payments](#token-payments-saved-cards). For `PaymentType::Reservation` and `PaymentType::DelayedCapture`, also set `reservationPeriod` or `delayedCapturePeriod`.
 
 ### Callback and events
 
@@ -173,6 +173,8 @@ $state->currency;         // Currency enum
 $state->completedAt;      // ?CarbonImmutable
 $state->transactions;     // array<TransactionDetailData>
 $state->fundingInformation?->bankCard?->maskedPan;
+$state->recurrenceType;   // ?RecurrenceType of a token payment
+$state->traceId;          // ?string, store it from the first token payment
 ```
 
 ### Refund
@@ -219,9 +221,113 @@ Barion::cancelAuthorization(new CancelAuthorizationRequestData($paymentId));
 
 All three return a `PaymentOperationResponseData` (`isSuccessful`, `status`, `transactions`).
 
-### Completing a 3D Secure token payment
+### Token payments (saved cards)
 
-A token payment (`recurrenceId` set) can come back from `startPayment()` with `recurrenceResult` `RecurrenceResult::ThreeDSAuthenticationRequired` and `threeDSAuthClientData`. After the customer finished the 3D Secure authentication, complete the payment:
+A token payment charges a card the customer saved with an earlier payment. You create the token: a `recurrenceId` of your own, sent with the first payment. Barion links the card to it. `recurrenceType` tells Barion how the token will be used:
+
+| `RecurrenceType`           | Who starts the charge         | Use it for                                                                 |
+|----------------------------|-------------------------------|----------------------------------------------------------------------------|
+| `OneClickPayment`          | The customer, on your site    | "Pay with the saved card" at checkout. The customer is present and may have to pass 3D Secure. |
+| `MerchantInitiatedPayment` | You, without the customer     | Charges with a varying amount or time: usage based billing, top-ups, later fees. |
+| `RecurringPayment`         | You, on a fixed schedule      | Subscriptions. Send `recurringExpiry` and `recurringFrequency` (days) in `purchaseInformation` with the first payment. |
+
+Use the same `recurrenceType` for the first payment and for every later charge of the token.
+
+#### 1. Register the card with the first payment
+
+The first payment is a normal payment on the Barion gateway, with `initiateRecurrence: true`:
+
+```php
+use Illuminate\Support\Str;
+use Szabrob\LaravelBarion\Data\ThreeDSecure\PurchaseInformationData;
+use Szabrob\LaravelBarion\Enums\RecurrenceType;
+
+$subscription->update(['barion_recurrence_id' => $recurrenceId = (string) Str::uuid()]);
+
+$payment = Barion::startPayment(new PaymentRequestData(
+    paymentRequestId: "sub-{$subscription->id}-first",
+    transactions: [/* the first period, as in "Starting a payment" */],
+    redirectUrl: route('subscriptions.barion.return', $subscription),
+    payerHint: $subscription->user->email,
+    initiateRecurrence: true,
+    recurrenceId: $recurrenceId,
+    recurrenceType: RecurrenceType::RecurringPayment,
+    purchaseInformation: new PurchaseInformationData(
+        recurringExpiry: now()->addYears(2),
+        recurringFrequency: 30,
+    ),
+));
+
+$subscription->update(['barion_payment_id' => $payment->paymentId]);
+
+return redirect()->away($payment->gatewayUrl);
+```
+
+When the payment succeeds, store the `traceId`. Every later charge of the token needs it:
+
+```php
+use Szabrob\LaravelBarion\Events\PaymentSucceeded;
+
+Event::listen(function (PaymentSucceeded $event): void {
+    $state = $event->paymentState;
+
+    if ($state->recurrenceType === null) {
+        return; // not a token payment
+    }
+
+    Subscription::query()
+        ->where('barion_payment_id', $state->paymentId)
+        ->whereNull('barion_trace_id')
+        ->update(['barion_trace_id' => $state->traceId, 'next_charge_at' => now()->addDays(30)]);
+});
+```
+
+`PaymentStateData` has `recurrenceType`, `traceId` and `recurrenceId`. `recurrenceId` is only filled when Barion sends it in the PaymentState response, and the official Barion client does not read it from there. Keep using the `recurrenceId` you stored.
+
+#### 2. Charge the token on a schedule
+
+A later charge is a `startPayment()` call with `initiateRecurrence: false`, the stored `recurrenceId`, the same `recurrenceType` and the stored `traceId`. There is no redirect: Barion charges the card at once and answers with a `recurrenceResult`.
+
+```php
+// routes/console.php
+use Illuminate\Support\Facades\Schedule;
+use Szabrob\LaravelBarion\Enums\RecurrenceResult;
+
+Schedule::call(function (): void {
+    Subscription::query()->where('next_charge_at', '<=', now())->each(function (Subscription $subscription): void {
+        $period = $subscription->next_charge_at->format('Y-m-d');
+
+        $response = Barion::startPayment(new PaymentRequestData(
+            // One id per billing period: a retry in the same period returns the same payment instead of charging twice.
+            paymentRequestId: "sub-{$subscription->id}-{$period}",
+            transactions: [
+                new PaymentTransactionData(
+                    posTransactionId: "sub-{$subscription->id}-{$period}",
+                    total: $subscription->price,
+                    items: [new ItemData(name: 'Monthly plan', description: $period, quantity: 1, unit: 'month', unitPrice: $subscription->price, itemTotal: $subscription->price)],
+                ),
+            ],
+            initiateRecurrence: false,
+            recurrenceId: $subscription->barion_recurrence_id,
+            recurrenceType: RecurrenceType::RecurringPayment,
+            traceId: $subscription->barion_trace_id,
+        ));
+
+        match ($response->recurrenceResult) {
+            RecurrenceResult::Successful => $subscription->update(['next_charge_at' => $subscription->next_charge_at->addDays(30)]),
+            RecurrenceResult::NotFound => $subscription->markCardMissing(), // the token is gone: the customer registers a card again
+            RecurrenceResult::ThreeDSAuthenticationRequired => $subscription->askForAuthentication($response), // see below
+            default => $subscription->markChargeFailed(), // e.g. declined or expired card: retry later or ask for a new card
+        };
+    });
+})->hourly();
+```
+
+`Successful` means Barion accepted the charge. Fulfil the period from the callback events (`PaymentSucceeded`) as with any other payment.
+
+#### 3. Completing a 3D Secure token payment
+
+A token charge can come back from `startPayment()` with `recurrenceResult` `RecurrenceResult::ThreeDSAuthenticationRequired` and `threeDSAuthClientData`. After the customer finished the 3D Secure authentication, complete the payment:
 
 ```php
 use Szabrob\LaravelBarion\Data\Requests\CompletePaymentRequestData;
@@ -290,6 +396,7 @@ The repository has a workbench test UI for trying the package against the real B
 1. Fill in the Barion variables in `workbench/.env` (copied from `workbench/.env.example`, git-ignored).
 2. Run `composer serve` and open `http://localhost:8000`.
 3. Start a payment, pay on the Barion test gateway, then come back to the payment page. There you can query the PaymentState, refund, finish a reservation, capture or cancel an authorization.
+4. For token payments, pick a recurrence type under **Kártya regisztrálása** on the start form. After the payment succeeds, set up a scheduled charge on its payment page. `vendor/bin/testbench schedule:work` runs `barion:charge-due` every minute. You can also run it once with `vendor/bin/testbench barion:charge-due`, or use the **Terhelés most** button.
 
 Barion cannot reach `localhost`. For real callbacks, expose the server through a tunnel (for example `ngrok http 8000`) and set `APP_URL` to the public URL. The workbench generates the RedirectUrl and CallbackUrl from `APP_URL`. Without a tunnel, use the **Callback szimuláció** button. It runs the same `handleCallback()` flow.
 

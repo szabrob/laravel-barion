@@ -7,7 +7,8 @@ namespace Workbench\App\Support;
 use Illuminate\Support\Facades\File;
 
 /**
- * Tiny JSON file store for the workbench: started payments and received callback events.
+ * Tiny JSON file store for the workbench: started payments, received callback
+ * events and scheduled token charges.
  */
 final class BarionLog
 {
@@ -49,9 +50,65 @@ final class BarionLog
             : array_values(array_filter($events, fn (array $event): bool => ($event['paymentId'] ?? null) === $paymentId));
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function payment(string $paymentId): ?array
+    {
+        foreach (self::payments() as $payment) {
+            if (($payment['paymentId'] ?? null) === $paymentId) {
+                return $payment;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public static function schedules(): array
+    {
+        return self::read('schedules');
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function schedule(string $id): ?array
+    {
+        foreach (self::schedules() as $schedule) {
+            if (($schedule['id'] ?? null) === $id) {
+                return $schedule;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Insert a new schedule or replace the one with the same id.
+     *
+     * @param  array<string, mixed>  $schedule
+     */
+    public static function saveSchedule(array $schedule): void
+    {
+        $others = array_values(array_filter(self::schedules(), fn (array $entry): bool => ($entry['id'] ?? null) !== $schedule['id']));
+
+        self::write('schedules', self::schedule($schedule['id']) === null ? [$schedule, ...$others] : array_map(
+            fn (array $entry): array => ($entry['id'] ?? null) === $schedule['id'] ? $schedule : $entry,
+            self::schedules(),
+        ));
+    }
+
+    public static function deleteSchedule(string $id): void
+    {
+        self::write('schedules', array_values(array_filter(self::schedules(), fn (array $entry): bool => ($entry['id'] ?? null) !== $id)));
+    }
+
     public static function clear(): void
     {
-        File::delete([self::path('payments'), self::path('events')]);
+        File::delete([self::path('payments'), self::path('events'), self::path('schedules')]);
     }
 
     /**
@@ -59,8 +116,14 @@ final class BarionLog
      */
     private static function prepend(string $name, array $entry): void
     {
-        $entries = array_slice([['at' => now()->toDateTimeString(), ...$entry], ...self::read($name)], 0, self::LIMIT);
+        self::write($name, array_slice([['at' => now()->toDateTimeString(), ...$entry], ...self::read($name)], 0, self::LIMIT));
+    }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $entries
+     */
+    private static function write(string $name, array $entries): void
+    {
         File::ensureDirectoryExists(dirname(self::path($name)));
         File::put(self::path($name), json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }

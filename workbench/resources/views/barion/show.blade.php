@@ -51,6 +51,39 @@
             </section>
         </div>
 
+        @if ($state->recurrenceType || ! empty($payment['recurrenceId']))
+            <section class="card">
+                <h2>Tokenes fizetés</h2>
+                <dl>
+                    <dt>RecurrenceType</dt><dd>{{ $state->recurrenceType?->value ?? $payment['recurrenceType'] ?? '–' }}</dd>
+                    <dt>RecurrenceId (workbench napló)</dt><dd><code>{{ $payment['recurrenceId'] ?? '–' }}</code></dd>
+                    <dt>RecurrenceId (PaymentState)</dt><dd><code>{{ $state->recurrenceId ?? '–' }}</code> <span class="muted">csak akkor van, ha a Barion visszaküldi</span></dd>
+                    <dt>TraceId</dt><dd><code>{{ $state->traceId ?? '–' }}</code></dd>
+                </dl>
+                @if (! empty($payment['recurrenceId']))
+                    @if ($state->status->isSuccessful())
+                        <h2 style="margin-top:16px">Ütemezett terhelés erre a kártyára</h2>
+                        <form method="post" action="{{ route('workbench.barion.schedule', $paymentId) }}">
+                            @csrf
+                            <div class="row">
+                                <div><label>Összeg</label><input name="amount" type="number" step="0.01" value="{{ old('amount', $state->total ?? 1000) }}" required></div>
+                                <div><label>Gyakoriság (perc)</label><input name="interval_minutes" type="number" value="{{ old('interval_minutes', 5) }}" required></div>
+                                <div><label>Első terhelés (perc múlva)</label><input name="first_in_minutes" type="number" value="{{ old('first_in_minutes', 1) }}" required></div>
+                            </div>
+                            <button>Ütemezés mentése</button>
+                            <p class="hint">Minden terhelés: <code>startPayment()</code> <code>initiateRecurrence: false</code>, a tárolt recurrenceId, recurrenceType és traceId, terhelésenként új paymentRequestId. Átirányítás nincs.</p>
+                        </form>
+                    @else
+                        <p class="hint">Ütemezett terhelést a kártyaregisztráló fizetés sikeres lezárása után lehet beállítani.</p>
+                    @endif
+                    @if ($schedules !== [])
+                        <h2 style="margin-top:16px">Ütemezések</h2>
+                        @include('barion.schedules', ['schedules' => $schedules])
+                    @endif
+                @endif
+            </section>
+        @endif
+
         <section class="card">
             <h2>Tranzakciók</h2>
             <div class="scroll"><table>
